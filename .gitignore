@@ -13,7 +13,7 @@ secrets/
 # runtime databases (never commit live SQLite)
 *.db
 *.db-*
-data/
+/data/
 data/backups/
 
 # python
