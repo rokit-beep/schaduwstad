@@ -6,6 +6,7 @@ from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 
 from app.platform import GameModule
 
+from .hub import SchaduwstadHub
 from .routes import build_router
 from .store import SchaduwstadStore
 
@@ -13,11 +14,13 @@ from .store import SchaduwstadStore
 def create_schaduwstad_module(database_path: Path, connections) -> GameModule:
     store = SchaduwstadStore(database_path)
     store.initialize()
+    hub = SchaduwstadHub(store)
 
     def register_routes(application: FastAPI) -> None:
         application.state.schaduwstad_store = store
+        application.state.schaduwstad_hub = hub
         application.include_router(
-            build_router(store, connections),
+            build_router(store, hub),
             prefix="/games/schaduwstad/api",
             tags=["schaduwstad"],
         )
@@ -28,18 +31,22 @@ def create_schaduwstad_module(database_path: Path, connections) -> GameModule:
             await websocket.accept()
             try:
                 view = store.view(token)
+                await hub.add(view["lobbyCode"], token, websocket)
                 await websocket.send_json({"type": "state", "view": view})
                 while True:
                     message = await websocket.receive_json()
                     if message.get("type") == "chat":
                         view = store.chat(token, message.get("body", ""))
+                        await hub.push(view["lobbyCode"])
                     else:
                         view = store.view(token)
-                    await websocket.send_json({"type": "state", "view": view})
+                        await websocket.send_json({"type": "state", "view": view})
             except WebSocketDisconnect:
                 return
             except Exception as exc:
                 await websocket.close(code=1008, reason=str(exc)[:80])
+            finally:
+                await hub.remove(lobby_code, websocket)
 
     return GameModule(
         game_id="schaduwstad",

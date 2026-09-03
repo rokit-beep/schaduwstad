@@ -5,6 +5,7 @@ from pydantic import BaseModel, Field
 
 from app.errors import GameError
 
+from .hub import SchaduwstadHub
 from .store import SchaduwstadStore
 
 
@@ -34,46 +35,51 @@ def _token(authorization: str | None) -> str:
     return authorization.split(" ", 1)[1].strip()
 
 
-def build_router(store: SchaduwstadStore, connections) -> APIRouter:
+def build_router(store: SchaduwstadStore, hub: SchaduwstadHub) -> APIRouter:
     api = APIRouter()
 
+    async def _push(view: dict) -> dict:
+        await hub.push(view["lobbyCode"])
+        return view
+
     @api.post("/lobbies")
-    def create_lobby(body: NameBody):
+    async def create_lobby(body: NameBody):
         token, view = store.create(body.player_name)
         return {"session_token": token, **view}
 
     @api.post("/lobbies/{code}/join")
-    def join_lobby(code: str, body: NameBody):
+    async def join_lobby(code: str, body: NameBody):
         token, view = store.join(code, body.player_name)
+        await _push(view)
         return {"session_token": token, **view}
 
     @api.get("/lobbies/{code}/state")
-    def state(authorization: str | None = Header(default=None)):
+    async def state(authorization: str | None = Header(default=None)):
         return store.view(_token(authorization))
 
     @api.post("/lobbies/{code}/team")
-    def team(body: TeamBody, authorization: str | None = Header(default=None)):
-        return store.set_team(_token(authorization), body.team)
+    async def team(body: TeamBody, authorization: str | None = Header(default=None)):
+        return await _push(store.set_team(_token(authorization), body.team))
 
     @api.post("/lobbies/{code}/ready")
-    def ready(body: ReadyBody, authorization: str | None = Header(default=None)):
-        return store.set_ready(_token(authorization), body.ready)
+    async def ready(body: ReadyBody, authorization: str | None = Header(default=None)):
+        return await _push(store.set_ready(_token(authorization), body.ready))
 
     @api.post("/lobbies/{code}/start")
-    def start(authorization: str | None = Header(default=None)):
-        return store.start(_token(authorization))
+    async def start(authorization: str | None = Header(default=None)):
+        return await _push(store.start(_token(authorization)))
 
     @api.post("/lobbies/{code}/actions/vote")
-    def vote(body: VoteBody, authorization: str | None = Header(default=None)):
-        return store.vote(_token(authorization), body.action)
+    async def vote(body: VoteBody, authorization: str | None = Header(default=None)):
+        return await _push(store.vote(_token(authorization), body.action))
 
     @api.post("/lobbies/{code}/actions/advance")
-    def advance(authorization: str | None = Header(default=None)):
-        return store.advance(_token(authorization))
+    async def advance(authorization: str | None = Header(default=None)):
+        return await _push(store.advance(_token(authorization)))
 
     @api.post("/lobbies/{code}/chat")
-    def chat(body: ChatBody, authorization: str | None = Header(default=None)):
-        return store.chat(_token(authorization), body.body)
+    async def chat(body: ChatBody, authorization: str | None = Header(default=None)):
+        return await _push(store.chat(_token(authorization), body.body))
 
     @api.websocket("/ws/{code}")
     async def ws(websocket: WebSocket, code: str):
@@ -81,18 +87,21 @@ def build_router(store: SchaduwstadStore, connections) -> APIRouter:
         await websocket.accept()
         try:
             view = store.view(token)
+            await hub.add(view["lobbyCode"], token, websocket)
             await websocket.send_json({"type": "state", "view": view})
             while True:
                 message = await websocket.receive_json()
-                kind = message.get("type")
-                if kind == "chat":
+                if message.get("type") == "chat":
                     view = store.chat(token, message.get("body", ""))
+                    await hub.push(view["lobbyCode"])
                 else:
                     view = store.view(token)
-                await websocket.send_json({"type": "state", "view": view})
+                    await websocket.send_json({"type": "state", "view": view})
         except WebSocketDisconnect:
             return
         except Exception as exc:
             await websocket.close(code=1008, reason=str(exc)[:80])
+        finally:
+            await hub.remove(code, websocket)
 
     return api
