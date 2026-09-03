@@ -1,0 +1,41 @@
+diff --git a/app/main.py b/app/main.py
+index 38371f6..37b8cfc 100644
+--- a/app/main.py
++++ b/app/main.py
+@@ -10,6 +10,7 @@ from app.config import Settings, settings
+ from app.database import Database
+ from app.errors import GameError
+ from app.games.crime import create_crime_module
++from app.games.schaduwstad import create_schaduwstad_module
+ from app.platform import GameRegistry
+ from app.platform.routes import router as platform_router
+ from app.service import GameService
+@@ -34,6 +35,9 @@ def create_app(app_settings: Settings | None = None) -> FastAPI:
+ 
+     game_registry = GameRegistry()
+     game_registry.register(create_crime_module(application.state.service, application.state.connections))
++    game_registry.register(
++        create_schaduwstad_module(selected.database_path.parent / "schaduwstad.db", application.state.connections)
++    )
+     application.state.game_registry = game_registry
+     game_registry.install_routes(application)
+     application.include_router(platform_router)
+diff --git a/tests/test_platform.py b/tests/test_platform.py
+index 8614a9a..c46b3a8 100644
+--- a/tests/test_platform.py
++++ b/tests/test_platform.py
+@@ -39,7 +39,13 @@ def test_platform_games_exposes_only_safe_crime_metadata(client):
+                 "name": "NightForge Crime",
+                 "version": "0.1.0",
+                 "status": "available",
+-            }
++            },
++            {
++                "id": "schaduwstad",
++                "name": "Schaduwstad",
++                "version": "0.1.0",
++                "status": "available",
++            },
+         ]
+     }
+     serialized = response.text.lower()

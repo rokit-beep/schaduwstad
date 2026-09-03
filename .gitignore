@@ -1,0 +1,36 @@
+# secrets / env
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.jks
+*.keystore
+*.token
+secrets/
+
+# runtime databases (never commit live SQLite)
+*.db
+*.db-*
+data/
+data/backups/
+
+# python
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# android/build
+local.properties
+.gradle/
+**/build/
+*.apk
+*.aab
+*.iml
+.idea/
+
+# os
+.DS_Store
