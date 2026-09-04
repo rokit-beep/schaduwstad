@@ -51,6 +51,6 @@ def create_schaduwstad_module(database_path: Path, connections) -> GameModule:
     return GameModule(
         game_id="schaduwstad",
         display_name="Schaduwstad",
-        version="0.1.1",
+        version="0.1.0",
         register_routes=register_routes,
     )
