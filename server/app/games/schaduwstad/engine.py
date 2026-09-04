@@ -299,6 +299,8 @@ def resolve_day(
         if not det_id or not maf_id:
             continue
         handled.update({det_id, maf_id})
+        if cinematic in contested_ids:
+            continue
         contested_ids.append(cinematic)
         det_label = action_by_id(det_id)["label"]
         maf_label = action_by_id(maf_id)["label"]
