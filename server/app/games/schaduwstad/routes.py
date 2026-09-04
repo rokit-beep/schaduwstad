@@ -30,6 +30,11 @@ class ChatBody(BaseModel):
     share: str | None = None
 
 
+class AckBody(BaseModel):
+    cinematics: list[str] = Field(default_factory=list)
+    impacts: list[str] = Field(default_factory=list)
+
+
 def _token(authorization: str | None) -> str:
     if not authorization or not authorization.lower().startswith("bearer "):
         raise GameError("bad_session", "Sessie ongeldig.", 401)
@@ -85,6 +90,10 @@ def build_router(store: SchaduwstadStore, hub: SchaduwstadHub) -> APIRouter:
     @api.post("/lobbies/{code}/chat")
     async def chat(body: ChatBody, authorization: str | None = Header(default=None)):
         return await _push(store.chat(_token(authorization), body.body, body.share))
+
+    @api.post("/lobbies/{code}/ack")
+    async def ack(body: AckBody, authorization: str | None = Header(default=None)):
+        return await _push(store.ack(_token(authorization), body.cinematics, body.impacts))
 
     @api.websocket("/ws/{code}")
     async def ws(websocket: WebSocket, code: str):

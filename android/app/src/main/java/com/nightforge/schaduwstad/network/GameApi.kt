@@ -1,5 +1,6 @@
 package com.nightforge.schaduwstad.network
 
+import com.nightforge.schaduwstad.data.AckBody
 import com.nightforge.schaduwstad.data.ChatBody
 import com.nightforge.schaduwstad.data.ErrorBody
 import com.nightforge.schaduwstad.data.GamesResponse
@@ -58,6 +59,9 @@ class GameApi(
 
     suspend fun chat(config: ConnectionConfig, session: Session, body: String, share: String? = null): SessionView =
         post(config, "$prefix/lobbies/${session.lobbyCode}/chat", json.encodeToString(ChatBody(body, share)), session.token)
+
+    suspend fun ack(config: ConnectionConfig, session: Session, cinematics: List<String> = emptyList(), impacts: List<String> = emptyList()): SessionView =
+        post(config, "$prefix/lobbies/${session.lobbyCode}/ack", json.encodeToString(AckBody(cinematics, impacts)), session.token)
 
     private suspend inline fun <reified T> get(config: ConnectionConfig, path: String, token: String?): T =
         execute(Request.Builder().url(config.httpBaseUrl() + path).apply { token?.let { header("Authorization", "Bearer $it") } }.get().build())

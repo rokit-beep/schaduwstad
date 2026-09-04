@@ -3,12 +3,22 @@ from __future__ import annotations
 from collections import Counter
 from typing import Literal
 
+try:
+    from .content import DAYS, build_impacts, spec_for
+except ImportError:
+    import sys
+    from pathlib import Path
+
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    from content import DAYS, build_impacts, spec_for
+
 TeamId = Literal["mafia", "detective"]
 
 TEAM_CAP = 6
 CASE_ID = "havenkade-12"
 AP_PER_DAY = 2
-PHASES = ("briefing", "huddle", "personal", "action", "result", "eval")
+PLAYABLE = ("play", "briefing", "huddle", "personal", "action")
+PHASES = ("play", "result", "eval")
 
 MAFIA_ACTIONS = (
     {
@@ -488,37 +498,44 @@ def resolve_day(
     }
 
 
-def ops_dossier(heat: int, evidence_score: int, result: dict | None) -> dict:
+def ops_dossier(heat: int, evidence_score: int, result: dict | None, personal: list[str] | None = None) -> dict:
     protected = []
     threats = []
     risks = []
-    personal = (result or {}).get("mafiaPersonal") or []
+    own = list(personal or []) or list((result or {}).get("mafiaPersonal") or [])
     contested = (result or {}).get("contested") or []
-    if "move_vehicle" in personal:
+    if "move_vehicle" in own:
         protected.append("Voertuig van de kade")
-    if "camera_sabotage" in personal:
+    if "camera_sabotage" in own:
         protected.append("Camerasysteem")
-    if "move_evidence" in personal:
+    if "move_evidence" in own:
         protected.append("Administratie")
-    if "camera_conflict" in contested:
-        threats.append("Recherche herstelde camerabeeld")
-        risks.append("Kentekenfragment in omloop")
-    if "vehicle_conflict" in contested:
-        threats.append("Bandensporen niet schoon")
-    if "witness_conflict" in contested:
-        risks.append("Rik is onbetrouwbaar geworden")
-    if evidence_score >= 70:
-        threats.append("Dossier nadert afronding")
-    if heat >= 60:
-        risks.append("De kade is te heet")
+    if "warn_contact" in own:
+        protected.append("Contact zwijgt")
+    if "false_alibi" in own:
+        protected.append("Alibi's staan")
+    if "pressure_witness" in own:
+        protected.append("Rik onder druk")
+    if result:
+        if "camera_conflict" in contested:
+            threats.append("Recherche herstelde camerabeeld")
+            risks.append("Kentekenfragment in omloop")
+        if "vehicle_conflict" in contested:
+            threats.append("Bandensporen niet schoon")
+        if "witness_conflict" in contested:
+            risks.append("Rik is onbetrouwbaar geworden")
+        if evidence_score >= 70:
+            threats.append("Dossier nadert afronding")
+        if heat >= 60:
+            risks.append("De kade is te heet")
     if not protected:
         protected.append("Nog niets veiliggesteld")
     if not threats:
-        threats.append("Geen zichtbare recherche-winst")
+        threats.append("Recherche beweegt in het donker" if not result else "Geen zichtbare recherche-winst")
     return {
-        "heat": heat,
-        "evidenceThreat": evidence_score,
+        "heat": heat if result else 0,
+        "evidenceThreat": evidence_score if result else 0,
         "protected": protected,
         "threats": threats,
-        "risks": risks or ["Nachtrust is een luxe"],
+        "risks": risks or (["Houd de kade stil"] if not result else ["Nachtrust is een luxe"]),
     }

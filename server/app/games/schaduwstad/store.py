@@ -13,6 +13,7 @@ from .engine import (
     AP_PER_DAY,
     CASE_ID,
     PHASES,
+    PLAYABLE,
     TEAM_CAP,
     action_by_id,
     actions_for,
@@ -21,7 +22,9 @@ from .engine import (
     majority,
     ops_dossier,
     resolve_day,
+    spec_for,
 )
+from .content import build_impacts
 
 CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
 
@@ -77,6 +80,13 @@ class SchaduwstadStore:
         lobby["ap"] = {p["id"]: AP_PER_DAY for p in lobby["players"]}
         lobby["result"] = None
         lobby["clues"] = lobby.get("clues") or {}
+        lobby["feed"] = []
+        lobby["impacts"] = []
+        lobby["impactSeen"] = {}
+        lobby["cinematicSeen"] = {}
+        spec = spec_for(lobby.get("day") or 1)
+        lobby["caseId"] = spec.get("caseId") or CASE_ID
+        lobby["apMax"] = int(spec.get("ap") or AP_PER_DAY)
 
     def create(self, player_name: str) -> tuple[str, dict]:
         name = player_name.strip()[:20]
@@ -108,6 +118,10 @@ class SchaduwstadStore:
                 "evidenceScore": 0,
                 "clues": {},
                 "result": None,
+                "feed": [],
+                "impacts": [],
+                "impactSeen": {},
+                "cinematicSeen": {},
             }
             self._memory[code] = lobby
             self._persist(lobby)
@@ -170,7 +184,7 @@ class SchaduwstadStore:
             if any(not p["team"] or not p["ready"] for p in lobby["players"]):
                 raise GameError("not_ready", "Iedereen moet ready zijn.", 400)
             lobby["status"] = "started"
-            lobby["phase"] = "briefing"
+            lobby["phase"] = "play"
             self._fresh_match_fields(lobby)
             self._persist(lobby)
         return self.view(token)
@@ -178,20 +192,22 @@ class SchaduwstadStore:
     def vote(self, token: str, action: str) -> dict:
         with self._lock:
             lobby, player = self._by_token(token)
-            if lobby["status"] != "started" or lobby["phase"] != "action":
+            if lobby["status"] != "started" or lobby["phase"] not in PLAYABLE:
                 raise GameError("wrong_phase", "Nu kan er niet gestemd worden.", 409)
             canon = canonicalize(action)
             allowed = {item["id"] for item in actions_for(player["team"])}
             if canon not in allowed:
                 raise GameError("bad_action", "Die actie hoort niet bij jouw team.", 400)
             lobby["votes"][player["id"]] = canon
+            item = action_by_id(canon)
+            self._append_feed(lobby, player, "vote", item)
             self._persist(lobby)
         return self.view(token)
 
     def act_personal(self, token: str, action: str) -> dict:
         with self._lock:
             lobby, player = self._by_token(token)
-            if lobby["status"] != "started" or lobby["phase"] != "personal":
+            if lobby["status"] != "started" or lobby["phase"] not in PLAYABLE:
                 raise GameError("wrong_phase", "Nu kan er geen persoonlijke actie.", 409)
             item = action_by_id(action)
             if not item:
@@ -208,6 +224,38 @@ class SchaduwstadStore:
                 raise GameError("no_ap", "Niet genoeg actiepunten.", 409)
             lobby["ap"][player["id"]] = ap - cost
             taken.append(item["id"])
+            self._append_feed(lobby, player, "personal", item)
+            self._persist(lobby)
+        return self.view(token)
+
+    def _append_feed(self, lobby: dict, player: dict, kind: str, item: dict | None) -> None:
+        if not item:
+            return
+        lobby.setdefault("feed", []).append(
+            {
+                "id": str(uuid4()),
+                "team": player["team"],
+                "playerId": player["id"],
+                "playerName": player["name"],
+                "kind": kind,
+                "label": item.get("label"),
+                "apLeft": lobby.get("ap", {}).get(player["id"], 0),
+                "at": _now(),
+            }
+        )
+        lobby["feed"] = lobby["feed"][-40:]
+
+    def ack(self, token: str, cinematics: list[str] | None = None, impacts: list[str] | None = None) -> dict:
+        with self._lock:
+            lobby, player = self._by_token(token)
+            seen_c = lobby.setdefault("cinematicSeen", {}).setdefault(player["id"], [])
+            seen_i = lobby.setdefault("impactSeen", {}).setdefault(player["id"], [])
+            for cid in cinematics or []:
+                if cid and cid not in seen_c:
+                    seen_c.append(cid)
+            for iid in impacts or []:
+                if iid and iid not in seen_i:
+                    seen_i.append(iid)
             self._persist(lobby)
         return self.view(token)
 
@@ -253,7 +301,7 @@ class SchaduwstadStore:
                 raise GameError("not_host", "Alleen de host schuift de fase door.", 403)
             if lobby["status"] != "started":
                 raise GameError("not_started", "Wedstrijd loopt niet.", 409)
-            if lobby["phase"] == "action":
+            if lobby["phase"] in PLAYABLE:
                 mafia_votes = [
                     lobby["votes"].get(p["id"])
                     for p in lobby["players"]
@@ -294,7 +342,10 @@ class SchaduwstadStore:
                     rank = {"unknown": 0, "disputed": 1, "discovered": 2, "verified": 3}
                     if not prev or rank.get(clue["status"], 0) >= rank.get(prev.get("status"), 0):
                         merged[clue_id] = clue
+                lobby["impacts"] = build_impacts(result)
                 lobby["phase"] = "result"
+            elif lobby["phase"] == "result":
+                lobby["phase"] = "eval"
             else:
                 idx = PHASES.index(lobby["phase"]) if lobby["phase"] in PHASES else 0
                 if idx < len(PHASES) - 1:
@@ -366,7 +417,7 @@ class SchaduwstadStore:
         mafia_n = sum(1 for p in lobby["players"] if p["team"] == "mafia")
         det_n = sum(1 for p in lobby["players"] if p["team"] == "detective")
         tally: dict[str, int] = {}
-        if started and team and lobby["phase"] in ("action", "result", "eval"):
+        if started and team and lobby["phase"] in (*PLAYABLE, "result", "eval"):
             for p in lobby["players"]:
                 if p["team"] != team:
                     continue
@@ -387,21 +438,47 @@ class SchaduwstadStore:
             clues = list(known.values())
         ops = None
         if team == "mafia" and started:
-            ops = ops_dossier(lobby.get("heat") or 0, lobby.get("evidenceScore") or 0, result if reveal else None)
-            if not reveal:
-                ops = {
-                    "heat": 0,
-                    "evidenceThreat": 0,
-                    "protected": ["Nog niets veiliggesteld"],
-                    "threats": ["Recherche beweegt in het donker"],
-                    "risks": ["Houd de kade stil"],
-                }
+            team_personal = [
+                a
+                for p in lobby["players"]
+                if p["team"] == "mafia"
+                for a in lobby.get("personal", {}).get(p["id"], [])
+            ]
+            ops = ops_dossier(
+                lobby.get("heat") or 0,
+                lobby.get("evidenceScore") or 0,
+                result if reveal else None,
+                team_personal,
+            )
+        feed = [e for e in (lobby.get("feed") or []) if team and e.get("team") == team]
+        seen_i = set((lobby.get("impactSeen") or {}).get(you["id"]) or [])
+        impacts = []
+        unseen_impacts = []
+        for imp in lobby.get("impacts") or []:
+            if imp.get("team") != team:
+                continue
+            public = {
+                "id": imp["id"],
+                "title": imp.get("title"),
+                "body": imp.get("body"),
+                "kind": imp.get("kind"),
+                "unseen": imp["id"] not in seen_i,
+            }
+            impacts.append(public)
+            if public["unseen"]:
+                unseen_impacts.append(public)
+        seen_c = set((lobby.get("cinematicSeen") or {}).get(you["id"]) or [])
+        unseen_cin = []
+        if public_result:
+            unseen_cin = [c for c in public_result.get("cinematics") or [] if c.get("id") not in seen_c]
+        spec = spec_for(lobby.get("day") or 1)
         return {
             "lobbyCode": lobby["code"],
             "status": lobby["status"],
             "day": lobby["day"],
             "phase": lobby["phase"],
             "caseId": lobby["caseId"],
+            "caseTitle": spec.get("title") or "Havenkade 12",
             "you": {
                 "id": you["id"],
                 "name": you["name"],
@@ -426,13 +503,13 @@ class SchaduwstadStore:
             "teamSize": {"mafia": mafia_n, "detective": det_n, "cap": TEAM_CAP},
             "chat": [m for m in lobby["chat"] if team and m["team"] == team],
             "briefing": briefing_for(team)
-            if started and team and lobby["phase"] in ("briefing", "huddle", "personal", "action")
+            if started and team and lobby["phase"] in PLAYABLE
             else None,
             "availableActions": list(actions_for(team))
-            if started and lobby["phase"] in ("personal", "action") and team
+            if started and lobby["phase"] in PLAYABLE and team
             else [],
             "yourVote": lobby["votes"].get(you["id"]),
-            "voteTally": vote_tally if started and team and lobby["phase"] in ("action", "result", "eval") else [],
+            "voteTally": vote_tally if started and team and lobby["phase"] in (*PLAYABLE, "result", "eval") else [],
             "scores": lobby["scores"] if reveal else {"mafia": 0, "detective": 0},
             "heat": lobby["heat"] if reveal else 0,
             "evidence": lobby["evidence"] if reveal else None,
@@ -440,6 +517,10 @@ class SchaduwstadStore:
             "clues": clues,
             "opsDossier": ops,
             "result": public_result,
+            "feed": feed,
+            "impacts": impacts,
+            "unseenImpacts": unseen_impacts,
+            "unseenCinematics": unseen_cin,
             "canStart": (
                 you["id"] == lobby["hostId"]
                 and lobby["status"] == "waiting"

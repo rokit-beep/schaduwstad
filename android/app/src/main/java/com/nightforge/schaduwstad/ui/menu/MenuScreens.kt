@@ -140,7 +140,7 @@ fun HowScreen(onBack: () -> Unit) {
             Spacer(Modifier.height(14.dp))
             HowBlock("DETECTIVES", "Verzamel bewijs.\nWerk samen.\nOntmasker de organisatie.", Ice)
             Spacer(Modifier.height(14.dp))
-            HowBlock("DAG 1", "Briefing, teamoverleg, 2 actiepunten voor persoonlijke zetten, daarna één teamstrategie. De server beslist. Cinematics volgen de uitkomst — nooit andersom.", Amber)
+            HowBlock("DAG 1", "Beide teams spelen tegelijk. 2 actiepunten per speler, plus één teamstrategie. Niemand wacht op de overkant. De server beslist de nacht, daarna cinematics en vijandelijke druk. Cinematics volgen de uitkomst — nooit andersom.", Amber)
             Spacer(Modifier.height(14.dp))
             HowBlock("VERTROUW NIEMAND", "Teamchat en dossiers lekken nooit naar de overkant. Later kunnen verborgen rollen zelfs binnen je eigen team gevaarlijk worden.", Fog)
             Spacer(Modifier.height(22.dp))

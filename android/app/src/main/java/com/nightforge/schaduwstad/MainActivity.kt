@@ -78,6 +78,7 @@ class MainActivity : ComponentActivity() {
                             onShareClue = vm::shareClue,
                             onReplay = vm::replayCinematic,
                             onCinematicFinished = vm::cinematicFinished,
+                            onImpactAck = vm::impactAcked,
                         )
                     }
                 }

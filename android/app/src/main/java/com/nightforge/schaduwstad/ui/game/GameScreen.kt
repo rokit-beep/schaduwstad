@@ -40,13 +40,16 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.nightforge.schaduwstad.data.Action
 import com.nightforge.schaduwstad.data.ChatMessage
 import com.nightforge.schaduwstad.data.CinematicCue
 import com.nightforge.schaduwstad.data.Clue
+import com.nightforge.schaduwstad.data.Impact
 import com.nightforge.schaduwstad.data.SessionView
+import com.nightforge.schaduwstad.data.TeamFeedItem
 import com.nightforge.schaduwstad.ui.cinematic.CinematicId
 import com.nightforge.schaduwstad.ui.cinematic.CinematicOverlay
 import com.nightforge.schaduwstad.ui.components.CinematicBackdrop
@@ -77,6 +80,7 @@ fun GameScreen(
     onShareClue: (String) -> Unit,
     onReplay: (CinematicCue) -> Unit,
     onCinematicFinished: () -> Unit,
+    onImpactAck: () -> Unit,
 ) {
     val view = state.view ?: return
     val accent = teamAccent(view.you?.team)
@@ -85,38 +89,39 @@ fun GameScreen(
         state.cinematicQueue.isNotEmpty() -> state.cinematicQueue
         else -> emptyList()
     }
+    val playing = overlay.isNotEmpty()
+    val showImpacts = !playing && state.impactQueue.isNotEmpty()
+    val playable = view.phase in setOf("play", "briefing", "huddle", "personal", "action")
+    val resultPhase = view.phase == "result" || view.phase == "eval"
     Box(Modifier.fillMaxSize()) {
         CinematicBackdrop(dim = 0.78f) {
-            Column(Modifier.fillMaxSize().imePadding().padding(horizontal = 16.dp, vertical = 12.dp)) {
+            Column(Modifier.fillMaxSize().imePadding().padding(horizontal = 16.dp, vertical = 10.dp)) {
                 ConnectionPill(state.connected, reconnecting)
-                Spacer(Modifier.height(8.dp))
+                Spacer(Modifier.height(6.dp))
                 GameHeader(view, accent)
-                Spacer(Modifier.height(8.dp))
+                Spacer(Modifier.height(6.dp))
                 if (reconnecting) {
                     Text("Verbinding herstellen…", color = Amber, fontSize = 13.sp)
-                    Spacer(Modifier.height(8.dp))
+                    Spacer(Modifier.height(6.dp))
                 }
                 ErrorBanner(state.error)
                 Column(
                     Modifier.weight(1f).verticalScroll(rememberScrollState()).animateContentSize(),
                     verticalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
-                    when (view.phase) {
-                        "briefing" -> BriefingPane(view.briefing, view.you?.team)
-                        "huddle" -> HuddleHint()
-                        "personal" -> PersonalPane(view, onPersonal)
-                        "action" -> ActionPane(view, onVote)
-                        "result" -> ResultPane(view, false, onReplay)
-                        "eval" -> ResultPane(view, true, onReplay)
+                    when {
+                        playable -> PlayPane(view, onPersonal, onVote)
+                        view.phase == "result" -> ResultPane(view, false, onReplay)
+                        view.phase == "eval" -> ResultPane(view, true, onReplay)
                     }
                     if (state.dossierOpen) {
                         if (view.you?.team == "detective") CaseDossier(view, onShareClue, onReplay)
                         else OpsDossierPane(view)
                     }
                 }
-                Spacer(Modifier.height(8.dp))
-                TeamChat(state, accent, onDraft, onSend)
-                Spacer(Modifier.height(8.dp))
+                Spacer(Modifier.height(6.dp))
+                TeamChat(state, accent, onDraft, onSend, if (resultPhase) 96.dp else 148.dp)
+                Spacer(Modifier.height(6.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Box(Modifier.weight(1f)) {
                         GhostButton(
@@ -127,7 +132,12 @@ fun GameScreen(
                     }
                     if (view.you?.isHost == true && view.phase != "eval") {
                         Box(Modifier.weight(1f)) {
-                            GhostButton("Volgende fase", onAdvance, accent, !state.busy)
+                            GhostButton(
+                                if (playable) "Sluit de nacht" else "Volgende",
+                                onAdvance,
+                                accent,
+                                !state.busy,
+                            )
                         }
                     }
                 }
@@ -139,6 +149,8 @@ fun GameScreen(
         }
         if (overlay.isNotEmpty()) {
             CinematicOverlay(overlay, onFinished = onCinematicFinished)
+        } else if (showImpacts) {
+            ImpactOverlay(state.impactQueue, onImpactAck)
         }
     }
 }
@@ -154,7 +166,7 @@ private fun GameHeader(view: SessionView, accent: Color) {
             fontWeight = FontWeight.Bold,
         )
         Text(
-            "HAVENKADE 12",
+            view.caseTitle ?: "HAVENKADE 12",
             color = Fog,
             letterSpacing = 2.sp,
             fontSize = 11.sp,
@@ -189,6 +201,70 @@ private fun ApRow(ap: Int, max: Int, accent: Color) {
             )
         }
         Text("$ap/$max", color = Color.White, fontSize = 12.sp)
+    }
+}
+
+@Composable
+private fun PlayPane(view: SessionView, onPersonal: (String) -> Unit, onVote: (String) -> Unit) {
+    val ap = view.you?.ap ?: 0
+    val taken = view.you?.personalActions ?: emptyList()
+    BriefingPane(view.briefing, view.you?.team)
+    if (view.feed.isNotEmpty()) {
+        GlassCard(Modifier.fillMaxWidth(), Fog) {
+            Text("TEAMVOORTGANG", color = Amber, letterSpacing = 2.sp, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+            Spacer(Modifier.height(8.dp))
+            view.feed.takeLast(6).reversed().forEach { item ->
+                val kind = if (item.kind == "vote") "strategie" else "actie"
+                Text(
+                    "${item.playerName}  ·  $kind  ·  ${item.label ?: ""}",
+                    color = Color.White,
+                    fontSize = 13.sp,
+                )
+                item.apLeft?.let { Text("AP over  $it", color = Fog, fontSize = 11.sp) }
+                Spacer(Modifier.height(4.dp))
+            }
+        }
+    }
+    Text("JOUW ACTIES  •  ${ap} AP", color = Amber, letterSpacing = 2.sp, fontSize = 11.sp)
+    Text("De overkant wacht niet. Jij ook niet.", color = Fog, fontSize = 13.sp)
+    view.availableActions.forEach { action ->
+        ActionCard(
+            action = action,
+            selected = action.id in taken,
+            enabled = action.id !in taken && ap >= action.ap,
+            badge = "${action.ap} AP",
+            onClick = { onPersonal(action.id) },
+        )
+    }
+    Spacer(Modifier.height(4.dp))
+    Text("TEAMSTRATEGIE", color = Amber, letterSpacing = 2.sp, fontSize = 11.sp)
+    Text("Eén hoofdactie. Alleen jouw team ziet deze stemmen.", color = Fog, fontSize = 13.sp)
+    view.availableActions.forEach { action ->
+        val votes = view.voteTally.find { it.id == action.id }?.votes ?: 0
+        ActionCard(
+            action = action,
+            selected = view.yourVote == action.id,
+            enabled = true,
+            badge = "$votes stemmen",
+            onClick = { onVote(action.id) },
+        )
+    }
+}
+
+@Composable
+private fun ImpactOverlay(items: List<Impact>, onAck: () -> Unit) {
+    Box(Modifier.fillMaxSize().background(Color.Black.copy(0.82f)).padding(22.dp), contentAlignment = Alignment.Center) {
+        Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Text("VIJANDIGE DRUK", color = PaperRed, letterSpacing = 3.sp, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+            items.take(4).forEach { impact ->
+                GlassCard(Modifier.fillMaxWidth(), if (impact.kind == "conflict") PaperRed else Amber) {
+                    Text((impact.title ?: "").uppercase(), color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp, lineHeight = 22.sp)
+                    Spacer(Modifier.height(8.dp))
+                    Text(impact.body ?: "", color = Fog, fontSize = 15.sp, lineHeight = 22.sp)
+                }
+            }
+            GhostButton("Gezien", onAck, Amber)
+        }
     }
 }
 
@@ -278,8 +354,10 @@ private fun ResultPane(view: SessionView, finale: Boolean, onReplay: (CinematicC
     GlassCard(Modifier.fillMaxWidth(), Amber) {
         Text(if (finale) "DAG 1 VOLTOOID" else "RESULTAAT", color = Amber, letterSpacing = 3.sp, fontSize = 12.sp, fontWeight = FontWeight.Bold)
         Spacer(Modifier.height(8.dp))
-        Text(result?.headline ?: "De nacht houdt haar mond.", color = Color.White, fontFamily = FontFamily.Serif, fontSize = 22.sp, lineHeight = 28.sp)
+        Text(result?.headline ?: "De nacht houdt haar mond.", color = Color.White, fontFamily = FontFamily.Serif, fontSize = 20.sp, lineHeight = 26.sp)
         Spacer(Modifier.height(10.dp))
+        Text("WAT VERANDERDE", color = Amber, letterSpacing = 2.sp, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+        Spacer(Modifier.height(6.dp))
         val beats = result?.beats.orEmpty()
         if (beats.isNotEmpty()) {
             beats.forEach { beat ->
@@ -317,13 +395,25 @@ private fun ResultPane(view: SessionView, finale: Boolean, onReplay: (CinematicC
         }
         val debrief = if (view.you?.team == "mafia") result?.mafiaDebrief else result?.detectiveDebrief
         if (!debrief.isNullOrBlank()) {
+            Text("WAT HET BETEKENT", color = Amber, letterSpacing = 2.sp, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+            Spacer(Modifier.height(6.dp))
             Text(debrief, color = Color(0xFFE8DFD2), fontSize = 15.sp, lineHeight = 22.sp)
             Spacer(Modifier.height(8.dp))
         }
+        Spacer(Modifier.height(4.dp))
+        val band = when {
+            view.evidenceScore < 25 -> "verborgen"
+            view.evidenceScore < 70 -> "fragmentarisch"
+            else -> "hard"
+        }
+        Meter("EVIDENCE  ${view.evidenceScore}  ·  $band", (view.evidenceScore.coerceIn(0, 100)) / 100f, Ice)
         Spacer(Modifier.height(8.dp))
-        Meter("EVIDENCE", (view.evidenceScore.coerceIn(0, 100)) / 100f, Ice)
-        Spacer(Modifier.height(8.dp))
-        Meter("HEAT", (view.heat.coerceIn(0, 100)) / 100f, PaperRed)
+        val heatWord = when {
+            view.heat < 25 -> "koel"
+            view.heat < 60 -> "warm"
+            else -> "heet"
+        }
+        Meter("HEAT  ${view.heat}  ·  $heatWord", (view.heat.coerceIn(0, 100)) / 100f, PaperRed)
         Spacer(Modifier.height(10.dp))
         Text(
             "MAFFIA ${view.scores?.mafia ?: 0}    ·    DETECTIVES ${view.scores?.detective ?: 0}",
@@ -444,14 +534,14 @@ private fun Meter(label: String, value: Float, color: Color) {
 }
 
 @Composable
-private fun TeamChat(state: UiState, accent: Color, onDraft: (String) -> Unit, onSend: () -> Unit) {
+private fun TeamChat(state: UiState, accent: Color, onDraft: (String) -> Unit, onSend: () -> Unit, height: Dp = 148.dp) {
     val list = rememberLazyListState()
     val chat = state.view?.chat ?: emptyList()
     LaunchedEffect(chat.size) { if (chat.isNotEmpty()) list.animateScrollToItem(chat.lastIndex) }
     Column(
         Modifier
             .fillMaxWidth()
-            .height(200.dp)
+            .height(height)
             .clip(RoundedCornerShape(14.dp))
             .background(Color(0xCC0B0A0C))
             .padding(10.dp),
@@ -522,10 +612,7 @@ private fun ChatBubble(message: ChatMessage, accent: Color, mine: Boolean) {
 }
 
 private fun phaseTitle(phase: String) = when (phase) {
-    "briefing" -> "Briefing"
-    "huddle" -> "Teamoverleg"
-    "personal" -> "Individuele acties"
-    "action" -> "Teamstrategie"
+    "play", "briefing", "huddle", "personal", "action" -> "De nacht is open"
     "result" -> "De kade antwoordt"
     "eval" -> "De stad slaapt nooit"
     else -> phase

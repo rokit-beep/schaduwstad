@@ -4,6 +4,7 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.nightforge.schaduwstad.data.CinematicCue
+import com.nightforge.schaduwstad.data.Impact
 import com.nightforge.schaduwstad.data.Session
 import com.nightforge.schaduwstad.data.SessionView
 import com.nightforge.schaduwstad.data.SettingsStore
@@ -39,6 +40,7 @@ data class UiState(
     val view: SessionView? = null,
     val busy: Boolean = false,
     val cinematicQueue: List<CinematicCue> = emptyList(),
+    val impactQueue: List<Impact> = emptyList(),
     val dossierOpen: Boolean = false,
     val replayCue: CinematicCue? = null,
 )
@@ -55,7 +57,7 @@ class GameViewModel(app: Application) : AndroidViewModel(app) {
     val ui: StateFlow<UiState> = _ui
     val socketStatus: StateFlow<SocketStatus> = socket.status
     private var pollJob: Job? = null
-    private var playedResultKey: String? = null
+    private var playedCinKey: String? = null
 
     init {
         viewModelScope.launch {
@@ -100,11 +102,29 @@ class GameViewModel(app: Application) : AndroidViewModel(app) {
     fun closeDossier() { _ui.update { it.copy(dossierOpen = false) } }
 
     fun cinematicFinished() {
+        val ids = _ui.value.cinematicQueue.map { it.id }
+        val view = _ui.value.view
         _ui.update { it.copy(cinematicQueue = emptyList(), replayCue = null) }
+        showImpactsIfAny(view)
+        if (ids.isNotEmpty()) ackSeen(cinematics = ids)
+    }
+
+    fun impactAcked() {
+        val ids = _ui.value.impactQueue.map { it.id }
+        _ui.update { it.copy(impactQueue = emptyList()) }
+        if (ids.isNotEmpty()) ackSeen(impacts = ids)
     }
 
     fun replayCinematic(cue: CinematicCue) {
         _ui.update { it.copy(replayCue = cue, cinematicQueue = emptyList()) }
+    }
+
+    private fun ackSeen(cinematics: List<String> = emptyList(), impacts: List<String> = emptyList()) {
+        val session = _ui.value.session ?: return
+        mutate { cfg, _ ->
+            applyView(api.ack(cfg, session, cinematics, impacts))
+            null
+        }
     }
 
     fun saveName(name: String) {
@@ -196,8 +216,8 @@ class GameViewModel(app: Application) : AndroidViewModel(app) {
     fun leaveToMenu() {
         pollJob?.cancel()
         socket.close()
-        playedResultKey = null
-        _ui.update { it.copy(dest = Dest.Menu, session = null, view = null, error = null, cinematicQueue = emptyList(), dossierOpen = false) }
+        playedCinKey = null
+        _ui.update { it.copy(dest = Dest.Menu, session = null, view = null, error = null, cinematicQueue = emptyList(), impactQueue = emptyList(), dossierOpen = false) }
     }
 
     private fun attach(view: SessionView) {
@@ -215,14 +235,24 @@ class GameViewModel(app: Application) : AndroidViewModel(app) {
             view.status == "waiting" && _ui.value.session != null -> Dest.Lobby
             else -> _ui.value.dest
         }
-        val key = "${view.day}:${view.phase}:${view.result?.headline}"
-        val queue = if (view.phase == "result" && key != playedResultKey && view.result?.cinematics?.isNotEmpty() == true) {
-            playedResultKey = key
-            view.result.cinematics
+        val key = "${view.day}:${view.phase}:cin"
+        val cinQueue = if (view.unseenCinematics.isNotEmpty() && key != playedCinKey) {
+            playedCinKey = key
+            view.unseenCinematics
         } else {
             _ui.value.cinematicQueue
         }
-        _ui.update { it.copy(view = view, dest = dest, error = null, cinematicQueue = queue) }
+        val impacts = if (cinQueue.isEmpty() && view.unseenImpacts.isNotEmpty() && _ui.value.replayCue == null) {
+            view.unseenImpacts
+        } else {
+            _ui.value.impactQueue.filter { impact -> view.unseenImpacts.any { it.id == impact.id } }
+        }
+        _ui.update { it.copy(view = view, dest = dest, error = null, cinematicQueue = cinQueue, impactQueue = impacts) }
+    }
+
+    private fun showImpactsIfAny(view: SessionView?) {
+        val unseen = view?.unseenImpacts.orEmpty()
+        if (unseen.isNotEmpty()) _ui.update { it.copy(impactQueue = unseen) }
     }
 
     private fun startPolling() {

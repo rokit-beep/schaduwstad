@@ -105,3 +105,24 @@ def test_beat_deltas_are_per_event_and_team_tagged():
     assert private["evidenceDelta"] == 9
     assert "kenteken" in result["clues"]
     assert result["clues"]["kenteken"].get("related") == ["bandenspoor"]
+
+
+def test_build_impacts_sanitized_and_team_scoped():
+    result = resolve_day(
+        "camera_sabotage",
+        "camera_analysis",
+        mafia_personal=["camera_sabotage"],
+        detective_personal=["camera_analysis", "tire_tracks"],
+    )
+    impacts = _engine.build_impacts(result)
+    mafia = [i for i in impacts if i["team"] == "mafia"]
+    det = [i for i in impacts if i["team"] == "detective"]
+    assert mafia
+    assert det
+    mafia_blob = str(mafia).lower()
+    det_blob = str(det).lower()
+    assert "camera_analysis" not in mafia_blob
+    assert "tire_tracks" not in mafia_blob
+    assert "camera_sabotage" not in det_blob
+    assert any("conflict" == i["kind"] for i in impacts)
+

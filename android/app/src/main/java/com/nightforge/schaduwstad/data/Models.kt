@@ -39,6 +39,9 @@ data class VoteBody(val action: String)
 data class ChatBody(val body: String = "", val share: String? = null)
 
 @Serializable
+data class AckBody(val cinematics: List<String> = emptyList(), val impacts: List<String> = emptyList())
+
+@Serializable
 data class SessionView(
     @SerialName("session_token") val sessionToken: String? = null,
     val lobbyCode: String = "",
@@ -61,7 +64,33 @@ data class SessionView(
     val clues: List<Clue> = emptyList(),
     val opsDossier: OpsDossier? = null,
     val result: DayResult? = null,
+    val caseTitle: String? = null,
+    val feed: List<TeamFeedItem> = emptyList(),
+    val impacts: List<Impact> = emptyList(),
+    val unseenImpacts: List<Impact> = emptyList(),
+    val unseenCinematics: List<CinematicCue> = emptyList(),
     val canStart: Boolean = false,
+)
+
+@Serializable
+data class TeamFeedItem(
+    val id: String? = null,
+    val team: String? = null,
+    val playerId: String? = null,
+    val playerName: String = "",
+    val kind: String? = null,
+    val label: String? = null,
+    val apLeft: Int? = null,
+    val at: String? = null,
+)
+
+@Serializable
+data class Impact(
+    val id: String,
+    val title: String? = null,
+    val body: String? = null,
+    val kind: String? = null,
+    val unseen: Boolean = true,
 )
 
 @Serializable
