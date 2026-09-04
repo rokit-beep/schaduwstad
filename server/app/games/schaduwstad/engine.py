@@ -125,6 +125,7 @@ CLUES = {
         "description": "Modderig fragment van een Nederlandse plaat. Letters deels weg.",
         "cinematic": "clue_kenteken",
         "sources": ("camera_analysis", "license_plate"),
+        "related": ("bandenspoor",),
     },
     "kasboek": {
         "id": "kasboek",
@@ -132,6 +133,7 @@ CLUES = {
         "description": "Half verbrande administratie uit de loods van Van Dorp.",
         "cinematic": "clue_kasboek",
         "sources": ("evidence_inspection", "container_records"),
+        "related": ("roetmap",),
     },
     "bandenspoor": {
         "id": "bandenspoor",
@@ -139,6 +141,7 @@ CLUES = {
         "description": "Verse groeven op natte klinkers, genomen voor de regen ze waste.",
         "cinematic": "clue_bandenspoor",
         "sources": ("tire_tracks",),
+        "related": ("kenteken",),
     },
     "roetmap": {
         "id": "roetmap",
@@ -146,6 +149,7 @@ CLUES = {
         "description": "Soot op vezel en een aangebrand dossier. Iemand wilde dit weg hebben.",
         "cinematic": "clue_roetmap",
         "sources": ("evidence_inspection", "container_records"),
+        "related": ("kasboek",),
     },
 }
 
@@ -228,6 +232,34 @@ def resolve_day(
     beats: list[dict] = []
     events: list[str] = []
     contested_ids: list[str] = []
+    m_lines: list[str] = []
+    d_lines: list[str] = []
+    headline = "De nacht houdt haar mond."
+    mdef = "Jullie houden de schade beperkt."
+    ddef = "De kade geeft weinig prijs."
+
+    def add_beat(
+        *,
+        beat_id: str,
+        cause: str,
+        effect: str,
+        cinematic: str,
+        team: str | None = None,
+        ev: int = 0,
+        ht: int = 0,
+    ) -> None:
+        beats.append(
+            {
+                "id": beat_id,
+                "cause": cause,
+                "effect": effect,
+                "cinematic": cinematic,
+                "team": team,
+                "evidenceDelta": ev,
+                "heatDelta": ht,
+            }
+        )
+        events.append(effect)
 
     def add_clue(clue_id: str, status: str, source: str, reliability: int) -> None:
         meta = CLUES[clue_id]
@@ -246,6 +278,7 @@ def resolve_day(
             "foundDuring": source,
             "reliability": reliability,
             "cinematic": meta["cinematic"],
+            "related": list(meta.get("related") or ()),
         }
 
     # Contested pairs first — they replace the individual cinematics.
@@ -260,144 +293,138 @@ def resolve_day(
         det_label = action_by_id(det_id)["label"]
         maf_label = action_by_id(maf_id)["label"]
         if cinematic == "camera_conflict":
-            evidence += 6
-            heat += 10
+            d_ev, d_ht = 6, 10
             mafia_delta += SCORE["stalemate"]
             detective_delta += SCORE["detective_lead"]
             add_clue("kenteken", "disputed", det_id, 48)
             headline = "Vier seconden beeld. Dan sneeuw."
-            mdef = "De camera is dood. Niet dood genoeg."
-            ddef = "Een fragment van vier seconden werd teruggevonden."
+            m_lines.append("De camera is dood. Niet dood genoeg.")
+            d_lines.append("Een fragment van vier seconden werd teruggevonden.")
             event = "Cameradata botste op sabotage."
         elif cinematic == "witness_conflict":
-            evidence += 4
-            heat += 12
+            d_ev, d_ht = 4, 12
             mafia_delta += SCORE["mafia_protect"]
             detective_delta += SCORE["stalemate"]
             headline = "Rik praat met twee monden."
-            mdef = "Rik houdt de gevaarlijke namen binnen."
-            ddef = "De getuige sluit af. Iemand was hem voor."
+            m_lines.append("Rik houdt de gevaarlijke namen binnen.")
+            d_lines.append("De getuige sluit af. Iemand was hem voor.")
             event = "Getuige ondervraagd en onder druk gezet."
         elif cinematic == "vehicle_conflict":
-            evidence += 7
-            heat += 8
+            d_ev, d_ht = 7, 8
             mafia_delta += SCORE["stalemate"]
             detective_delta += SCORE["detective_lead"]
             add_clue("bandenspoor", "disputed", det_id, 55)
             add_clue("kenteken", "discovered", det_id, 62)
             headline = "De bus is weg. De groeven niet."
-            mdef = "Het voertuig is veilig. De kade niet schoon."
-            ddef = "Verse sporen, halve plaat, lege parkeerplaats."
+            m_lines.append("Het voertuig is veilig. De kade niet schoon.")
+            d_lines.append("Verse sporen, halve plaat, lege parkeerplaats.")
             event = "Voertuigspoor botste op verplaatsing."
         else:
-            evidence += 5
-            heat += 6
+            d_ev, d_ht = 5, 6
             mafia_delta += SCORE["mafia_contain"]
             detective_delta += SCORE["stalemate"]
             add_clue("kasboek", "disputed", det_id, 40)
             headline = "De stukken waren er. Nu half."
-            mdef = "De kern is weg. Ze houden as over."
-            ddef = "Iemand tilde de map op voor jullie."
+            m_lines.append("De kern is weg. Ze houden as over.")
+            d_lines.append("Iemand tilde de map op voor jullie.")
             event = "Bewijs verplaatst tijdens inspectie."
+        evidence += d_ev
+        heat += d_ht
         cinematics.append(_cue(cinematic, headline, "contested"))
-        beats.append(
-            {
-                "id": cinematic,
-                "cause": f"{det_label} × {maf_label}",
-                "effect": event,
-                "cinematic": cinematic,
-                "evidenceDelta": evidence,
-                "heatDelta": heat,
-            }
+        add_beat(
+            beat_id=cinematic,
+            cause=f"{det_label} × {maf_label}",
+            effect=event,
+            cinematic=cinematic,
+            team=None,
+            ev=d_ev,
+            ht=d_ht,
         )
-        events.append(event)
 
     def uncontested_detective(action_id: str) -> None:
         nonlocal evidence, heat, detective_delta
         item = action_by_id(action_id)
         if action_id in ("camera_analysis", "license_plate"):
-            evidence += 10
-            heat += 6
+            d_ev, d_ht = 10, 6
             detective_delta += SCORE["detective_evidence"]
             add_clue("kenteken", "discovered", action_id, 78)
-            add_clue("kenteken", "verified", action_id, 88) if action_id == "license_plate" else None
+            if action_id == "license_plate":
+                add_clue("kenteken", "verified", action_id, 88)
             effect = "Camerabeeld en kenteken komen samen."
         elif action_id == "evidence_inspection":
-            evidence += 12
-            heat += 5
+            d_ev, d_ht = 12, 5
             detective_delta += SCORE["detective_link"]
             add_clue("kasboek", "discovered", action_id, 74)
             add_clue("roetmap", "discovered", action_id, 70)
             effect = "Roet en papier overleefden de brand."
         elif action_id == "tire_tracks":
-            evidence += 9
-            heat += 4
+            d_ev, d_ht = 9, 4
             detective_delta += SCORE["detective_lead"]
             add_clue("bandenspoor", "verified", action_id, 84)
             effect = "Het spoor is gegoten voor de regen."
         elif action_id == "witness":
-            evidence += 6
-            heat += 7
+            d_ev, d_ht = 6, 7
             detective_delta += SCORE["detective_lead"]
             effect = "Rik beschrijft twee mannen en een zwarte wagen."
         else:
-            evidence += 11
-            heat += 5
+            d_ev, d_ht = 11, 5
             detective_delta += SCORE["detective_link"]
             add_clue("kasboek", "verified", action_id, 90)
             add_clue("roetmap", "discovered", action_id, 66)
             effect = "Containerboeking koppelt Van Dorp aan de loods."
+        evidence += d_ev
+        heat += d_ht
+        d_lines.append(effect)
         cinematics.append(_cue(item["cinematic"], item["label"], "action", "detective"))
-        events.append(effect)
-        beats.append(
-            {
-                "id": action_id,
-                "cause": item["label"],
-                "effect": effect,
-                "cinematic": item["cinematic"],
-            }
+        add_beat(
+            beat_id=action_id,
+            cause=item["label"],
+            effect=effect,
+            cinematic=item["cinematic"],
+            team="detective",
+            ev=d_ev,
+            ht=d_ht,
         )
 
     def uncontested_mafia(action_id: str) -> None:
         nonlocal evidence, heat, mafia_delta
         item = action_by_id(action_id)
         if action_id == "move_vehicle":
-            evidence = max(0, evidence - 6)
-            heat = max(8, heat - 4)
+            d_ev, d_ht = -6, -4
             mafia_delta += SCORE["mafia_contain"]
             effect = "De bus is van de kade."
         elif action_id == "camera_sabotage":
-            evidence = max(0, evidence - 8)
-            heat += 3
+            d_ev, d_ht = -8, 3
             mafia_delta += SCORE["mafia_protect"]
             effect = "De kade is blind."
         elif action_id == "move_evidence":
-            evidence = max(0, evidence - 10)
-            heat = max(8, heat - 6)
+            d_ev, d_ht = -10, -6
             mafia_delta += SCORE["mafia_protect"]
             effect = "De stukken zijn weg."
         elif action_id == "warn_contact":
-            heat = max(8, heat - 3)
+            d_ev, d_ht = 0, -3
             mafia_delta += SCORE["mafia_mislead"]
             effect = "Het contact zwijgt."
         elif action_id == "false_alibi":
-            heat = max(8, heat - 5)
+            d_ev, d_ht = 0, -5
             mafia_delta += SCORE["mafia_mislead"]
             effect = "De alibi's staan te strak."
         else:
-            evidence = max(0, evidence - 4)
-            heat += 8
+            d_ev, d_ht = -4, 8
             mafia_delta += SCORE["mafia_protect"]
             effect = "Rik trekt zijn verklaring in."
+        evidence = max(0, evidence + d_ev)
+        heat = max(8, heat + d_ht) if d_ht < 0 else heat + d_ht
+        m_lines.append(effect)
         cinematics.append(_cue(item["cinematic"], item["label"], "action", "mafia"))
-        events.append(effect)
-        beats.append(
-            {
-                "id": action_id,
-                "cause": item["label"],
-                "effect": effect,
-                "cinematic": item["cinematic"],
-            }
+        add_beat(
+            beat_id=action_id,
+            cause=item["label"],
+            effect=effect,
+            cinematic=item["cinematic"],
+            team="mafia",
+            ev=d_ev,
+            ht=d_ht,
         )
 
     for action_id in d_all:
@@ -415,20 +442,14 @@ def resolve_day(
         headline = "Stilte aan de kade."
         mdef = "Jullie hielden de schade beperkt door niets te doen."
         ddef = "De kade geeft weinig prijs."
-    elif not events:
-        headline = "De nacht houdt haar mond."
-        mdef = "Jullie houden de schade beperkt."
-        ddef = "De kade geeft weinig prijs."
     else:
-        headline = beats[0]["cause"] if beats else "Havenkade 12."
-        # Prefer a contested headline already set in the loop.
         if contested_ids:
-            pass
-        mdef = next((e for e in events if e), "Jullie houden de schade beperkt.")
-        ddef = next((e for e in events if e), "De kade geeft weinig prijs.")
-        if contested_ids:
-            # headlines already assigned in contested branch; recover last set via events
-            headline = events[0]
+            shared = next((b for b in beats if not b.get("team")), None)
+            headline = (shared or beats[0])["effect"] if beats else headline
+        elif beats:
+            headline = beats[0]["cause"]
+        mdef = " ".join(m_lines) or "Jullie houden de schade beperkt."
+        ddef = " ".join(d_lines) or "De kade geeft weinig prijs."
 
     # Clue-reveal cinematics after action/conflict, detectives only.
     for clue in clues.values():

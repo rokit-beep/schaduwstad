@@ -71,32 +71,62 @@ fun CinematicPlayer(
     val player = remember {
         ExoPlayer.Builder(context).build().apply { volume = 1f }
     }
+    val preload = remember {
+        ExoPlayer.Builder(context).build().apply {
+            volume = 0f
+            playWhenReady = false
+        }
+    }
+    val onSkipState = remember { mutableStateOf(onSkip) }
+    onSkipState.value = onSkip
+    val finishingState = remember { mutableStateOf(false) }
+    fun finish() {
+        if (finishingState.value) return
+        finishingState.value = true
+        visible = false
+        player.pause()
+        onSkipState.value()
+    }
     LaunchedEffect(cue.id) {
+        finishingState.value = true
+        player.pause()
+        player.clearMediaItems()
+        finishingState.value = false
         visible = true
         if (raw == 0) {
-            onSkip()
+            finish()
             return@LaunchedEffect
         }
         val uri = android.net.Uri.parse("android.resource://${context.packageName}/$raw")
         player.setMediaItem(MediaItem.fromUri(uri))
-        next?.let { nxt ->
-            CinematicId.fromWire(nxt.id)?.rawRes(context)?.takeIf { it != 0 }?.let { res ->
-                player.addMediaItem(MediaItem.fromUri(android.net.Uri.parse("android.resource://${context.packageName}/$res")))
-            }
-        }
         player.prepare()
         player.playWhenReady = true
+        preload.pause()
+        preload.clearMediaItems()
+        next?.let { nxt ->
+            CinematicId.fromWire(nxt.id)?.rawRes(context)?.takeIf { it != 0 }?.let { res ->
+                preload.setMediaItem(
+                    MediaItem.fromUri(android.net.Uri.parse("android.resource://${context.packageName}/$res")),
+                )
+                preload.prepare()
+            }
+        }
     }
     DisposableEffect(player) {
         val listener = object : Player.Listener {
             override fun onPlaybackStateChanged(state: Int) {
-                if (state == Player.STATE_ENDED) onSkip()
+                if (state == Player.STATE_ENDED) {
+                    if (finishingState.value) return
+                    finishingState.value = true
+                    onSkipState.value()
+                }
             }
         }
         player.addListener(listener)
         onDispose {
             player.removeListener(listener)
             player.release()
+            preload.release()
         }
     }
     Box(
@@ -134,10 +164,7 @@ fun CinematicPlayer(
             modifier = Modifier
                 .align(Alignment.BottomEnd)
                 .padding(22.dp)
-                .clickable {
-                    player.stop()
-                    onSkip()
-                }
+                .clickable { finish() }
                 .padding(8.dp),
         )
     }

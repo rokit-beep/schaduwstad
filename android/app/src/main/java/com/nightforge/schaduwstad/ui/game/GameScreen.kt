@@ -285,6 +285,31 @@ private fun ResultPane(view: SessionView, finale: Boolean, onReplay: (CinematicC
             beats.forEach { beat ->
                 Text(beat.cause ?: "", color = Amber, fontSize = 12.sp, letterSpacing = 1.sp, fontWeight = FontWeight.Bold)
                 Text(beat.effect ?: "", color = Fog, fontSize = 14.sp, lineHeight = 20.sp)
+                if (beat.evidenceDelta != 0 || beat.heatDelta != 0) {
+                    val ev = beat.evidenceDelta
+                    val ht = beat.heatDelta
+                    Text(
+                        buildString {
+                            if (ev != 0) append("Evidence ${if (ev > 0) "+" else ""}$ev")
+                            if (ev != 0 && ht != 0) append("    ")
+                            if (ht != 0) append("Heat ${if (ht > 0) "+" else ""}$ht")
+                        },
+                        color = Color.White,
+                        fontSize = 12.sp,
+                        letterSpacing = 1.sp,
+                    )
+                }
+                if (!beat.cinematic.isNullOrBlank()) {
+                    Text(
+                        "CINEMATIC OPNIEUW",
+                        color = Fog,
+                        fontSize = 11.sp,
+                        letterSpacing = 2.sp,
+                        modifier = Modifier.clickable {
+                            onReplay(CinematicCue(id = beat.cinematic, title = beat.cause, kind = "replay"))
+                        },
+                    )
+                }
                 Spacer(Modifier.height(8.dp))
             }
         } else {
@@ -307,7 +332,7 @@ private fun ResultPane(view: SessionView, finale: Boolean, onReplay: (CinematicC
             fontSize = 13.sp,
         )
         val cue = result?.cinematics?.firstOrNull()
-        if (cue != null) {
+        if (cue != null && beats.isEmpty()) {
             Spacer(Modifier.height(10.dp))
             Text(
                 "CINEMATIC OPNIEUW",
@@ -363,6 +388,9 @@ private fun ClueCard(clue: Clue, onShare: (String) -> Unit, onReplay: (Cinematic
         Text(clue.description, color = Fog, fontSize = 13.sp, lineHeight = 18.sp)
         Text("Gevonden tijdens  •  ${clue.foundDuring ?: "—"}", color = Fog.copy(0.8f), fontSize = 11.sp)
         Text("Betrouwbaarheid  ${clue.reliability}%", color = Amber, fontSize = 11.sp)
+        if (clue.related.isNotEmpty()) {
+            Text("Gerelateerd  •  ${clue.related.joinToString(" · ")}", color = Ice, fontSize = 11.sp)
+        }
         Spacer(Modifier.height(6.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
             Text("DELEN", color = Ice, fontSize = 11.sp, letterSpacing = 2.sp, modifier = Modifier.clickable { onShare(clue.id) })

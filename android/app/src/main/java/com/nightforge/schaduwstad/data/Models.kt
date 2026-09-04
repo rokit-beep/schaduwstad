@@ -126,6 +126,7 @@ data class Clue(
     val foundDuring: String? = null,
     val reliability: Int = 0,
     val cinematic: String? = null,
+    val related: List<String> = emptyList(),
 )
 
 @Serializable
@@ -152,6 +153,9 @@ data class Beat(
     val cause: String? = null,
     val effect: String? = null,
     val cinematic: String? = null,
+    val team: String? = null,
+    val evidenceDelta: Int = 0,
+    val heatDelta: Int = 0,
 )
 
 @Serializable

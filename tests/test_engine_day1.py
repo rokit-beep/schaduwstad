@@ -1,7 +1,15 @@
 import importlib.util
 from pathlib import Path
 
-_ENGINE = Path(__file__).resolve().parents[1] / "server/app/games/schaduwstad/engine.py"
+_HERE = Path(__file__).resolve()
+_ENGINE = next(
+    p
+    for p in (
+        _HERE.parents[1] / "server/app/games/schaduwstad/engine.py",
+        _HERE.parents[1] / "app/games/schaduwstad/engine.py",
+    )
+    if p.exists()
+)
 _spec = importlib.util.spec_from_file_location("schaduwstad_engine", _ENGINE)
 _engine = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(_engine)
@@ -79,3 +87,21 @@ def test_heat_and_evidence_are_numeric_and_clamped():
     assert 0 <= result["heat"] <= 100
     assert 0 <= result["evidenceScore"] <= 100
     assert result["evidence"] in ("hidden", "partial", "verified")
+
+
+def test_beat_deltas_are_per_event_and_team_tagged():
+    result = resolve_day(
+        "camera_sabotage",
+        "camera_analysis",
+        mafia_personal=["camera_sabotage"],
+        detective_personal=["camera_analysis", "tire_tracks"],
+    )
+    contested = next(b for b in result["beats"] if b["id"] == "camera_conflict")
+    assert contested["team"] is None
+    assert contested["evidenceDelta"] == 6
+    assert contested["heatDelta"] == 10
+    private = next(b for b in result["beats"] if b["id"] == "tire_tracks")
+    assert private["team"] == "detective"
+    assert private["evidenceDelta"] == 9
+    assert "kenteken" in result["clues"]
+    assert result["clues"]["kenteken"].get("related") == ["bandenspoor"]

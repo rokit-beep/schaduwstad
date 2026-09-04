@@ -346,6 +346,21 @@ class SchaduwstadStore:
                     continue
                 cues.append(cue)
             public_result["cinematics"] = cues
+            beats = []
+            for beat in result.get("beats") or []:
+                owner = beat.get("team")
+                if owner and owner != team:
+                    continue
+                beats.append(beat)
+            public_result["beats"] = beats
+            public_result["events"] = [b.get("effect") for b in beats if b.get("effect")]
+            shared = [b for b in beats if not b.get("team")]
+            if shared:
+                public_result["headline"] = shared[0].get("effect") or shared[0].get("cause")
+            elif beats:
+                public_result["headline"] = beats[0].get("cause")
+            else:
+                public_result["headline"] = "De nacht houdt haar mond."
             if team != "detective":
                 public_result["clues"] = {}
         mafia_n = sum(1 for p in lobby["players"] if p["team"] == "mafia")

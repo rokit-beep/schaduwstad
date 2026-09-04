@@ -193,6 +193,11 @@ def test_personal_ap_and_cinematic_isolation(client):
         json={"action": "camera_analysis"},
         headers=auth(ghost_token),
     )
+    client.post(
+        f"/games/schaduwstad/api/lobbies/{code}/actions/personal",
+        json={"action": "tire_tracks"},
+        headers=auth(ghost_token),
+    )
     client.post(f"/games/schaduwstad/api/lobbies/{code}/actions/advance", headers=auth(host_token))
     client.post(f"/games/schaduwstad/api/lobbies/{code}/actions/advance", headers=auth(host_token))
     mafia_view = client.get(f"/games/schaduwstad/api/lobbies/{code}/state", headers=auth(host_token)).json()
@@ -203,7 +208,18 @@ def test_personal_ap_and_cinematic_isolation(client):
     assert "camera_conflict" in mafia_ids
     assert "camera_conflict" in det_ids
     assert not any(i.startswith("clue_") for i in mafia_ids)
+    assert "tire_tracks" not in mafia_ids
+    assert "tire_tracks" in det_ids
     assert det_view["clues"]
     assert mafia_view["clues"] == []
     assert mafia_view["opsDossier"] is not None
     assert det_view["opsDossier"] is None
+    mafia_beats = str(mafia_view["result"]["beats"]).lower()
+    assert "bandensporen" not in mafia_beats
+    assert "tire_tracks" not in mafia_beats
+    det_beat_ids = [b.get("id") for b in det_view["result"]["beats"]]
+    assert "tire_tracks" in det_beat_ids
+    assert "camera_conflict" in det_beat_ids
+    mafia_beat_ids = [b.get("id") for b in mafia_view["result"]["beats"]]
+    assert "camera_conflict" in mafia_beat_ids
+    assert "tire_tracks" not in mafia_beat_ids
