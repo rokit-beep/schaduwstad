@@ -124,5 +124,37 @@ def test_build_impacts_sanitized_and_team_scoped():
     assert "camera_analysis" not in mafia_blob
     assert "tire_tracks" not in mafia_blob
     assert "camera_sabotage" not in det_blob
+    assert "source" not in mafia_blob
     assert any("conflict" == i["kind"] for i in impacts)
+    assert all(i["id"].startswith("imp-") for i in impacts)
+
+
+def test_future_cinematic_ids_are_registered():
+    content_path = _ENGINE.parent / "content.py"
+    spec = importlib.util.spec_from_file_location("schaduwstad_content_ids", content_path)
+    content = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(content)
+    ids = content.known_cinematic_ids()
+    assert "camera_analysis" in ids
+    assert "d2_d01_container_inspection" in ids
+    assert "d5_c04_suspect_escapes" in ids
+    assert "global_g07_witness_secured" in ids
+    assert "enemy_ei03_witness_missing" in ids
+
+
+def test_contested_cause_does_not_name_enemy_action_id():
+    result = resolve_day(
+        "camera_sabotage",
+        "camera_analysis",
+        mafia_personal=["camera_sabotage"],
+        detective_personal=["camera_analysis"],
+    )
+    contested = next(b for b in result["beats"] if b["id"] == "camera_conflict")
+    blob = str(contested).lower()
+    assert "camera_analysis" not in blob
+    assert "camera_sabotage" not in blob
+    assert result["evidenceOld"] == 18
+    assert result["heatOld"] == 28
+    assert result["followUps"]
+
 

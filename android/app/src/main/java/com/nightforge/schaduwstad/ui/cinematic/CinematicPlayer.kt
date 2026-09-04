@@ -22,6 +22,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -32,6 +34,8 @@ import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.ui.PlayerView
 import com.nightforge.schaduwstad.data.CinematicCue
+import com.nightforge.schaduwstad.ui.theme.Amber
+import kotlinx.coroutines.delay
 
 @OptIn(UnstableApi::class)
 @Composable
@@ -40,7 +44,28 @@ fun CinematicOverlay(
     onFinished: () -> Unit,
 ) {
     if (queue.isEmpty()) return
+    var intro by remember(queue) { mutableStateOf(true) }
     var index by remember(queue) { mutableStateOf(0) }
+    if (intro) {
+        LaunchedEffect(queue) {
+            delay(1200)
+            intro = false
+        }
+        Box(
+            Modifier.fillMaxSize().background(Color.Black),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(
+                "DE STAD REAGEERT…",
+                color = Amber,
+                letterSpacing = 4.sp,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Bold,
+                fontFamily = FontFamily.Serif,
+            )
+        }
+        return
+    }
     val cue = queue.getOrNull(index)
     if (cue == null) {
         LaunchedEffect(Unit) { onFinished() }
@@ -64,10 +89,9 @@ fun CinematicPlayer(
     compact: Boolean = false,
 ) {
     val context = LocalContext.current
-    val cinematic = CinematicId.fromWire(cue.id)
-    val raw = cinematic?.rawRes(context) ?: 0
+    val raw = CinematicCatalog.rawRes(context, cue.id)
     var visible by remember(cue.id) { mutableStateOf(false) }
-    val alpha by animateFloatAsState(if (visible) 1f else 0f, tween(280), label = "cin")
+    val alpha by animateFloatAsState(if (visible) 1f else 0f, tween(320), label = "cin")
     val player = remember {
         ExoPlayer.Builder(context).build().apply { volume = 1f }
     }
@@ -94,6 +118,7 @@ fun CinematicPlayer(
         finishingState.value = false
         visible = true
         if (raw == 0) {
+            delay(900)
             finish()
             return@LaunchedEffect
         }
@@ -104,7 +129,7 @@ fun CinematicPlayer(
         preload.pause()
         preload.clearMediaItems()
         next?.let { nxt ->
-            CinematicId.fromWire(nxt.id)?.rawRes(context)?.takeIf { it != 0 }?.let { res ->
+            CinematicCatalog.rawRes(context, nxt.id).takeIf { it != 0 }?.let { res ->
                 preload.setMediaItem(
                     MediaItem.fromUri(android.net.Uri.parse("android.resource://${context.packageName}/$res")),
                 )
@@ -118,6 +143,7 @@ fun CinematicPlayer(
                 if (state == Player.STATE_ENDED) {
                     if (finishingState.value) return
                     finishingState.value = true
+                    visible = false
                     onSkipState.value()
                 }
             }

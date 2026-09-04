@@ -52,6 +52,10 @@ data class SessionView(
     val you: You? = null,
     val players: List<Player> = emptyList(),
     val teamSize: TeamSize? = null,
+    val teamReady: TeamReady? = null,
+    val opponentStatus: String? = null,
+    val teamPresence: List<TeamPresence> = emptyList(),
+    val roundSecondsLeft: Int? = null,
     val chat: List<ChatMessage> = emptyList(),
     val briefing: String? = null,
     val availableActions: List<Action> = emptyList(),
@@ -69,7 +73,28 @@ data class SessionView(
     val impacts: List<Impact> = emptyList(),
     val unseenImpacts: List<Impact> = emptyList(),
     val unseenCinematics: List<CinematicCue> = emptyList(),
+    val developments: List<Development> = emptyList(),
     val canStart: Boolean = false,
+)
+
+@Serializable
+data class TeamReady(val ready: Int = 0, val total: Int = 0)
+
+@Serializable
+data class TeamPresence(
+    val id: String? = null,
+    val name: String = "",
+    val status: String = "",
+    val ready: Boolean = false,
+)
+
+@Serializable
+data class Development(
+    val id: String? = null,
+    val at: String? = null,
+    val title: String? = null,
+    val body: String? = null,
+    val kind: String? = null,
 )
 
 @Serializable
@@ -90,6 +115,7 @@ data class Impact(
     val title: String? = null,
     val body: String? = null,
     val kind: String? = null,
+    val cinematic: String? = null,
     val unseen: Boolean = true,
 )
 
@@ -103,6 +129,7 @@ data class You(
     val ap: Int = 2,
     val apMax: Int = 2,
     val personalActions: List<String> = emptyList(),
+    val followUpTaken: Boolean = false,
 )
 
 @Serializable
@@ -165,6 +192,7 @@ data class OpsDossier(
     val protected: List<String> = emptyList(),
     val threats: List<String> = emptyList(),
     val risks: List<String> = emptyList(),
+    val locations: List<String> = emptyList(),
 )
 
 @Serializable
@@ -177,6 +205,18 @@ data class CinematicCue(
 )
 
 @Serializable
+data class FollowUp(
+    val id: String,
+    val label: String? = null,
+    val hint: String? = null,
+    val effect: String? = null,
+    val ev: Int = 0,
+    val ht: Int = 0,
+    val beatId: String? = null,
+    val team: String? = null,
+)
+
+@Serializable
 data class Beat(
     val id: String? = null,
     val cause: String? = null,
@@ -185,6 +225,7 @@ data class Beat(
     val team: String? = null,
     val evidenceDelta: Int = 0,
     val heatDelta: Int = 0,
+    val followUp: FollowUp? = null,
 )
 
 @Serializable
@@ -196,8 +237,12 @@ data class DayResult(
     val mafiaDelta: Int = 0,
     val detectiveDelta: Int = 0,
     val heat: Int = 0,
+    val heatOld: Int = 0,
+    val heatDelta: Int = 0,
     val evidence: String? = null,
     val evidenceScore: Int = 0,
+    val evidenceOld: Int = 0,
+    val evidenceDelta: Int = 0,
     val headline: String? = null,
     val mafiaDebrief: String? = null,
     val detectiveDebrief: String? = null,
@@ -206,6 +251,7 @@ data class DayResult(
     val cinematics: List<CinematicCue> = emptyList(),
     val clues: Map<String, Clue> = emptyMap(),
     val contested: List<String> = emptyList(),
+    val followUps: List<FollowUp> = emptyList(),
 )
 
 @Serializable

@@ -83,6 +83,10 @@ def build_router(store: SchaduwstadStore, hub: SchaduwstadHub) -> APIRouter:
     async def personal(body: VoteBody, authorization: str | None = Header(default=None)):
         return await _push(store.act_personal(_token(authorization), body.action))
 
+    @api.post("/lobbies/{code}/actions/followup")
+    async def followup(body: VoteBody, authorization: str | None = Header(default=None)):
+        return await _push(store.followup(_token(authorization), body.action))
+
     @api.post("/lobbies/{code}/actions/advance")
     async def advance(authorization: str | None = Header(default=None)):
         return await _push(store.advance(_token(authorization)))

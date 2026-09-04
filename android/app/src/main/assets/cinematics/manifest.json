@@ -1,0 +1,854 @@
+{
+  "created": "2026-09-04T05:51:26Z",
+  "style": "existing Schaduwstad intro + Day 1 — wet Dutch harbor night, amber vs ice-blue, rain, fog, photorealistic crime thriller, no text/logos/brands",
+  "assets": [
+    {
+      "cinematic_id": "d2_d01_container_inspection",
+      "day": "2",
+      "faction": "DETECTIVE",
+      "category": "action",
+      "visibility": "DETECTIVE",
+      "action": "Containerterminal onderzoeken"
+    },
+    {
+      "cinematic_id": "d2_d02_customs_records",
+      "day": "2",
+      "faction": "DETECTIVE",
+      "category": "action",
+      "visibility": "DETECTIVE",
+      "action": "Douanegegevens analyseren"
+    },
+    {
+      "cinematic_id": "d2_d03_gps_tracker",
+      "day": "2",
+      "faction": "DETECTIVE",
+      "category": "action",
+      "visibility": "DETECTIVE",
+      "action": "GPS-tracker uitlezen"
+    },
+    {
+      "cinematic_id": "d2_d04_harbor_worker",
+      "day": "2",
+      "faction": "DETECTIVE",
+      "category": "action",
+      "visibility": "DETECTIVE",
+      "action": "Havenmedewerker ondervragen"
+    },
+    {
+      "cinematic_id": "d2_d05_truck_route",
+      "day": "2",
+      "faction": "DETECTIVE",
+      "category": "action",
+      "visibility": "DETECTIVE",
+      "action": "Vrachtwagenroute reconstrueren"
+    },
+    {
+      "cinematic_id": "d2_d06_hidden_compartment",
+      "day": "2",
+      "faction": "DETECTIVE",
+      "category": "action",
+      "visibility": "DETECTIVE",
+      "action": "Verborgen compartiment onderzoeken"
+    },
+    {
+      "cinematic_id": "d2_m01_move_container",
+      "day": "2",
+      "faction": "MAFIA",
+      "category": "action",
+      "visibility": "MAFIA",
+      "action": "Container verplaatsen"
+    },
+    {
+      "cinematic_id": "d2_m02_destroy_gps",
+      "day": "2",
+      "faction": "MAFIA",
+      "category": "action",
+      "visibility": "MAFIA",
+      "action": "GPS-tracker vernietigen"
+    },
+    {
+      "cinematic_id": "d2_m03_customs_bribe",
+      "day": "2",
+      "faction": "MAFIA",
+      "category": "action",
+      "visibility": "MAFIA",
+      "action": "Douanier omkopen"
+    },
+    {
+      "cinematic_id": "d2_m04_swap_truck",
+      "day": "2",
+      "faction": "MAFIA",
+      "category": "action",
+      "visibility": "MAFIA",
+      "action": "Vrachtwagen wisselen"
+    },
+    {
+      "cinematic_id": "d2_m05_fake_papers",
+      "day": "2",
+      "faction": "MAFIA",
+      "category": "action",
+      "visibility": "MAFIA",
+      "action": "Documenten vervalsen"
+    },
+    {
+      "cinematic_id": "d2_m06_leave_bait_container",
+      "day": "2",
+      "faction": "MAFIA",
+      "category": "action",
+      "visibility": "MAFIA",
+      "action": "Container als lokaas gebruiken"
+    },
+    {
+      "cinematic_id": "d2_c01_container_intercepted",
+      "day": "2",
+      "faction": "BOTH",
+      "category": "contested",
+      "visibility": "PUBLIC",
+      "action": "Container onderschept"
+    },
+    {
+      "cinematic_id": "d2_c02_gps_signal_lost",
+      "day": "2",
+      "faction": "BOTH",
+      "category": "contested",
+      "visibility": "PUBLIC",
+      "action": "GPS-signaal verdwijnt tijdens achtervolging"
+    },
+    {
+      "cinematic_id": "d2_c03_simultaneous_arrival",
+      "day": "2",
+      "faction": "BOTH",
+      "category": "contested",
+      "visibility": "PUBLIC",
+      "action": "Politie en Mafia arriveren tegelijk"
+    },
+    {
+      "cinematic_id": "d2_c04_hidden_cargo_nearly_found",
+      "day": "2",
+      "faction": "BOTH",
+      "category": "contested",
+      "visibility": "PUBLIC",
+      "action": "Verborgen lading wordt bijna ontdekt"
+    },
+    {
+      "cinematic_id": "d2_r01_fake_freight_bill",
+      "day": "2",
+      "faction": "PUBLIC",
+      "category": "clue",
+      "visibility": "PUBLIC",
+      "action": "Valse vrachtbrief"
+    },
+    {
+      "cinematic_id": "d2_r02_gps_module",
+      "day": "2",
+      "faction": "PUBLIC",
+      "category": "clue",
+      "visibility": "PUBLIC",
+      "action": "GPS-module"
+    },
+    {
+      "cinematic_id": "d2_r03_customs_seal",
+      "day": "2",
+      "faction": "PUBLIC",
+      "category": "clue",
+      "visibility": "PUBLIC",
+      "action": "Douanezegel"
+    },
+    {
+      "cinematic_id": "d2_r04_hidden_phone",
+      "day": "2",
+      "faction": "PUBLIC",
+      "category": "clue",
+      "visibility": "PUBLIC",
+      "action": "Verborgen telefoon"
+    },
+    {
+      "cinematic_id": "d3_d01_anonymous_tip",
+      "day": "3",
+      "faction": "DETECTIVE",
+      "category": "action",
+      "visibility": "DETECTIVE",
+      "action": "Anonieme tip ontvangen"
+    },
+    {
+      "cinematic_id": "d3_d02_phone_metadata",
+      "day": "3",
+      "faction": "DETECTIVE",
+      "category": "action",
+      "visibility": "DETECTIVE",
+      "action": "Telefoonmetadata analyseren"
+    },
+    {
+      "cinematic_id": "d3_d03_secret_meeting_observe",
+      "day": "3",
+      "faction": "DETECTIVE",
+      "category": "action",
+      "visibility": "DETECTIVE",
+      "action": "Geheime ontmoeting observeren"
+    },
+    {
+      "cinematic_id": "d3_d04_money_flows",
+      "day": "3",
+      "faction": "DETECTIVE",
+      "category": "action",
+      "visibility": "DETECTIVE",
+      "action": "Geldstromen onderzoeken"
+    },
+    {
+      "cinematic_id": "d3_d05_meet_informant",
+      "day": "3",
+      "faction": "DETECTIVE",
+      "category": "action",
+      "visibility": "DETECTIVE",
+      "action": "Informant ontmoeten"
+    },
+    {
+      "cinematic_id": "d3_d06_communication_patterns",
+      "day": "3",
+      "faction": "DETECTIVE",
+      "category": "action",
+      "visibility": "DETECTIVE",
+      "action": "Communicatiepatronen vergelijken"
+    },
+    {
+      "cinematic_id": "d3_m01_check_internal_phones",
+      "day": "3",
+      "faction": "MAFIA",
+      "category": "action",
+      "visibility": "MAFIA",
+      "action": "Interne telefoons controleren"
+    },
+    {
+      "cinematic_id": "d3_m02_observe_suspect_member",
+      "day": "3",
+      "faction": "MAFIA",
+      "category": "action",
+      "visibility": "MAFIA",
+      "action": "Verdacht lid observeren"
+    },
+    {
+      "cinematic_id": "d3_m03_spread_false_info",
+      "day": "3",
+      "faction": "MAFIA",
+      "category": "action",
+      "visibility": "MAFIA",
+      "action": "Valse informatie verspreiden"
+    },
+    {
+      "cinematic_id": "d3_m04_loyalty_test",
+      "day": "3",
+      "faction": "MAFIA",
+      "category": "action",
+      "visibility": "MAFIA",
+      "action": "Interne loyaliteit testen"
+    },
+    {
+      "cinematic_id": "d3_m05_replace_channel",
+      "day": "3",
+      "faction": "MAFIA",
+      "category": "action",
+      "visibility": "MAFIA",
+      "action": "Communicatiekanaal vervangen"
+    },
+    {
+      "cinematic_id": "d3_m06_confront_possible_traitor",
+      "day": "3",
+      "faction": "MAFIA",
+      "category": "action",
+      "visibility": "MAFIA",
+      "action": "Mogelijke verrader confronteren"
+    },
+    {
+      "cinematic_id": "d3_c01_secret_meeting_conflict",
+      "day": "3",
+      "faction": "BOTH",
+      "category": "contested",
+      "visibility": "PUBLIC",
+      "action": "Geheime ontmoeting bijna ontdekt"
+    },
+    {
+      "cinematic_id": "d3_c02_false_tip_reaches_police",
+      "day": "3",
+      "faction": "BOTH",
+      "category": "contested",
+      "visibility": "PUBLIC",
+      "action": "Valse tip bereikt politie"
+    },
+    {
+      "cinematic_id": "d3_c03_informant_escapes",
+      "day": "3",
+      "faction": "BOTH",
+      "category": "contested",
+      "visibility": "PUBLIC",
+      "action": "Informant ontsnapt"
+    },
+    {
+      "cinematic_id": "d3_c04_internal_suspicion_explodes",
+      "day": "3",
+      "faction": "BOTH",
+      "category": "contested",
+      "visibility": "PUBLIC",
+      "action": "Interne verdenking explodeert"
+    },
+    {
+      "cinematic_id": "d3_r01_burner_phone",
+      "day": "3",
+      "faction": "PUBLIC",
+      "category": "clue",
+      "visibility": "PUBLIC",
+      "action": "Burner phone"
+    },
+    {
+      "cinematic_id": "d3_r02_unexplained_payment",
+      "day": "3",
+      "faction": "PUBLIC",
+      "category": "clue",
+      "visibility": "PUBLIC",
+      "action": "Onverklaarde betaling"
+    },
+    {
+      "cinematic_id": "d3_r04_coded_message",
+      "day": "3",
+      "faction": "PUBLIC",
+      "category": "clue",
+      "visibility": "PUBLIC",
+      "action": "Gecodeerd bericht"
+    },
+    {
+      "cinematic_id": "d3_r03_leaked_location",
+      "day": "3",
+      "faction": "PUBLIC",
+      "category": "clue",
+      "visibility": "PUBLIC",
+      "action": "Gelekte locatie"
+    },
+    {
+      "cinematic_id": "d4_d01_bank_transactions",
+      "day": "4",
+      "faction": "DETECTIVE",
+      "category": "action",
+      "visibility": "DETECTIVE",
+      "action": "Banktransacties analyseren"
+    },
+    {
+      "cinematic_id": "d4_d02_observe_office",
+      "day": "4",
+      "faction": "DETECTIVE",
+      "category": "action",
+      "visibility": "DETECTIVE",
+      "action": "Bedrijfspand observeren"
+    },
+    {
+      "cinematic_id": "d4_d03_inspect_books",
+      "day": "4",
+      "faction": "DETECTIVE",
+      "category": "action",
+      "visibility": "DETECTIVE",
+      "action": "Boekhouding onderzoeken"
+    },
+    {
+      "cinematic_id": "d4_d04_follow_account",
+      "day": "4",
+      "faction": "DETECTIVE",
+      "category": "action",
+      "visibility": "DETECTIVE",
+      "action": "Verdachte rekening volgen"
+    },
+    {
+      "cinematic_id": "d4_d05_follow_cash_transport",
+      "day": "4",
+      "faction": "DETECTIVE",
+      "category": "action",
+      "visibility": "DETECTIVE",
+      "action": "Geldtransport volgen"
+    },
+    {
+      "cinematic_id": "d4_d06_reconstruct_structure",
+      "day": "4",
+      "faction": "DETECTIVE",
+      "category": "action",
+      "visibility": "DETECTIVE",
+      "action": "Bedrijfsstructuur reconstrueren"
+    },
+    {
+      "cinematic_id": "d4_m01_move_cash",
+      "day": "4",
+      "faction": "MAFIA",
+      "category": "action",
+      "visibility": "MAFIA",
+      "action": "Geld verplaatsen"
+    },
+    {
+      "cinematic_id": "d4_m02_destroy_books",
+      "day": "4",
+      "faction": "MAFIA",
+      "category": "action",
+      "visibility": "MAFIA",
+      "action": "Boekhouding vernietigen"
+    },
+    {
+      "cinematic_id": "d4_m03_warn_strawman",
+      "day": "4",
+      "faction": "MAFIA",
+      "category": "action",
+      "visibility": "MAFIA",
+      "action": "Stroman waarschuwen"
+    },
+    {
+      "cinematic_id": "d4_m04_open_new_account",
+      "day": "4",
+      "faction": "MAFIA",
+      "category": "action",
+      "visibility": "MAFIA",
+      "action": "Nieuwe rekening openen"
+    },
+    {
+      "cinematic_id": "d4_m05_change_cash_transport",
+      "day": "4",
+      "faction": "MAFIA",
+      "category": "action",
+      "visibility": "MAFIA",
+      "action": "Cash transport veranderen"
+    },
+    {
+      "cinematic_id": "d4_m06_front_business",
+      "day": "4",
+      "faction": "MAFIA",
+      "category": "action",
+      "visibility": "MAFIA",
+      "action": "Legale onderneming als dekmantel gebruiken"
+    },
+    {
+      "cinematic_id": "d4_c01_cash_transport_intercepted",
+      "day": "4",
+      "faction": "BOTH",
+      "category": "contested",
+      "visibility": "PUBLIC",
+      "action": "Geldtransport onderschept"
+    },
+    {
+      "cinematic_id": "d4_c02_empty_office_raid",
+      "day": "4",
+      "faction": "BOTH",
+      "category": "contested",
+      "visibility": "PUBLIC",
+      "action": "Recherche valt leeg pand binnen"
+    },
+    {
+      "cinematic_id": "d4_c03_digital_transfer_blocked",
+      "day": "4",
+      "faction": "BOTH",
+      "category": "contested",
+      "visibility": "PUBLIC",
+      "action": "Digitale transactie net geblokkeerd"
+    },
+    {
+      "cinematic_id": "d4_c04_financial_trail_opens",
+      "day": "4",
+      "faction": "BOTH",
+      "category": "contested",
+      "visibility": "PUBLIC",
+      "action": "Financieel spoor breekt open"
+    },
+    {
+      "cinematic_id": "d4_r01_cash_ledger",
+      "day": "4",
+      "faction": "PUBLIC",
+      "category": "clue",
+      "visibility": "PUBLIC",
+      "action": "Kasboek"
+    },
+    {
+      "cinematic_id": "d4_r02_bank_transfer",
+      "day": "4",
+      "faction": "PUBLIC",
+      "category": "clue",
+      "visibility": "PUBLIC",
+      "action": "Banktransfer"
+    },
+    {
+      "cinematic_id": "d4_r03_shell_company_document",
+      "day": "4",
+      "faction": "PUBLIC",
+      "category": "clue",
+      "visibility": "PUBLIC",
+      "action": "Shell company document"
+    },
+    {
+      "cinematic_id": "d4_r04_cash_bundle",
+      "day": "4",
+      "faction": "PUBLIC",
+      "category": "clue",
+      "visibility": "PUBLIC",
+      "action": "Cash bundle evidence"
+    },
+    {
+      "cinematic_id": "d5_d01_position_observation",
+      "day": "5",
+      "faction": "DETECTIVE",
+      "category": "action",
+      "visibility": "DETECTIVE",
+      "action": "Observatieteam positioneren"
+    },
+    {
+      "cinematic_id": "d5_d02_prepare_arrest_team",
+      "day": "5",
+      "faction": "DETECTIVE",
+      "category": "action",
+      "visibility": "DETECTIVE",
+      "action": "Arrestatieteam voorbereiden"
+    },
+    {
+      "cinematic_id": "d5_d03_track_phone_locations",
+      "day": "5",
+      "faction": "DETECTIVE",
+      "category": "action",
+      "visibility": "DETECTIVE",
+      "action": "Telefoonlocaties volgen"
+    },
+    {
+      "cinematic_id": "d5_d04_finalize_evidence",
+      "day": "5",
+      "faction": "DETECTIVE",
+      "category": "action",
+      "visibility": "DETECTIVE",
+      "action": "Bewijs finaliseren"
+    },
+    {
+      "cinematic_id": "d5_d05_shadow_suspect",
+      "day": "5",
+      "faction": "DETECTIVE",
+      "category": "action",
+      "visibility": "DETECTIVE",
+      "action": "Verdachte schaduwen"
+    },
+    {
+      "cinematic_id": "d5_d06_prepare_raid",
+      "day": "5",
+      "faction": "DETECTIVE",
+      "category": "action",
+      "visibility": "DETECTIVE",
+      "action": "Inval voorbereiden"
+    },
+    {
+      "cinematic_id": "d5_m01_leave_safehouse",
+      "day": "5",
+      "faction": "MAFIA",
+      "category": "action",
+      "visibility": "MAFIA",
+      "action": "Safehouse verlaten"
+    },
+    {
+      "cinematic_id": "d5_m02_destroy_phones",
+      "day": "5",
+      "faction": "MAFIA",
+      "category": "action",
+      "visibility": "MAFIA",
+      "action": "Telefoons vernietigen"
+    },
+    {
+      "cinematic_id": "d5_m03_change_route",
+      "day": "5",
+      "faction": "MAFIA",
+      "category": "action",
+      "visibility": "MAFIA",
+      "action": "Route wijzigen"
+    },
+    {
+      "cinematic_id": "d5_m04_destroy_evidence",
+      "day": "5",
+      "faction": "MAFIA",
+      "category": "action",
+      "visibility": "MAFIA",
+      "action": "Bewijs wegwerken"
+    },
+    {
+      "cinematic_id": "d5_m05_hide_person",
+      "day": "5",
+      "faction": "MAFIA",
+      "category": "action",
+      "visibility": "MAFIA",
+      "action": "Persoon laten onderduiken"
+    },
+    {
+      "cinematic_id": "d5_m06_counter_surveillance",
+      "day": "5",
+      "faction": "MAFIA",
+      "category": "action",
+      "visibility": "MAFIA",
+      "action": "Tegenobservatie uitvoeren"
+    },
+    {
+      "cinematic_id": "d5_c01_chase",
+      "day": "5",
+      "faction": "BOTH",
+      "category": "contested",
+      "visibility": "PUBLIC",
+      "action": "Achtervolging"
+    },
+    {
+      "cinematic_id": "d5_c02_failed_arrest",
+      "day": "5",
+      "faction": "BOTH",
+      "category": "contested",
+      "visibility": "PUBLIC",
+      "action": "Mislukte arrestatie"
+    },
+    {
+      "cinematic_id": "d5_c03_safehouse_raid",
+      "day": "5",
+      "faction": "BOTH",
+      "category": "contested",
+      "visibility": "PUBLIC",
+      "action": "Safehouse inval"
+    },
+    {
+      "cinematic_id": "d5_c04_suspect_escapes",
+      "day": "5",
+      "faction": "BOTH",
+      "category": "contested",
+      "visibility": "PUBLIC",
+      "action": "Verdachte ontsnapt op laatste moment"
+    },
+    {
+      "cinematic_id": "global_g01_evidence_increased",
+      "day": "global",
+      "faction": "PUBLIC",
+      "category": "global",
+      "visibility": "PUBLIC",
+      "action": "Evidence increased"
+    },
+    {
+      "cinematic_id": "global_g02_evidence_destroyed",
+      "day": "global",
+      "faction": "PUBLIC",
+      "category": "global",
+      "visibility": "PUBLIC",
+      "action": "Evidence destroyed"
+    },
+    {
+      "cinematic_id": "global_g03_heat_increased",
+      "day": "global",
+      "faction": "PUBLIC",
+      "category": "global",
+      "visibility": "PUBLIC",
+      "action": "Heat increased"
+    },
+    {
+      "cinematic_id": "global_g04_heat_decreased",
+      "day": "global",
+      "faction": "PUBLIC",
+      "category": "global",
+      "visibility": "PUBLIC",
+      "action": "Heat decreased"
+    },
+    {
+      "cinematic_id": "global_g05_new_anonymous_tip",
+      "day": "global",
+      "faction": "PUBLIC",
+      "category": "global",
+      "visibility": "PUBLIC",
+      "action": "New anonymous tip"
+    },
+    {
+      "cinematic_id": "global_g06_witness_disappeared",
+      "day": "global",
+      "faction": "PUBLIC",
+      "category": "global",
+      "visibility": "PUBLIC",
+      "action": "Witness disappeared"
+    },
+    {
+      "cinematic_id": "global_g07_witness_secured",
+      "day": "global",
+      "faction": "PUBLIC",
+      "category": "global",
+      "visibility": "PUBLIC",
+      "action": "Witness secured"
+    },
+    {
+      "cinematic_id": "global_g08_police_surveillance",
+      "day": "global",
+      "faction": "DETECTIVE",
+      "category": "global",
+      "visibility": "PUBLIC",
+      "action": "Police surveillance active"
+    },
+    {
+      "cinematic_id": "global_g09_mafia_surveillance",
+      "day": "global",
+      "faction": "MAFIA",
+      "category": "global",
+      "visibility": "PUBLIC",
+      "action": "Mafia surveillance active"
+    },
+    {
+      "cinematic_id": "global_g10_unknown_vehicle",
+      "day": "global",
+      "faction": "PUBLIC",
+      "category": "global",
+      "visibility": "PUBLIC",
+      "action": "Unknown vehicle spotted"
+    },
+    {
+      "cinematic_id": "global_g11_phone_signal_detected",
+      "day": "global",
+      "faction": "PUBLIC",
+      "category": "global",
+      "visibility": "PUBLIC",
+      "action": "Phone signal detected"
+    },
+    {
+      "cinematic_id": "global_g12_phone_destroyed",
+      "day": "global",
+      "faction": "PUBLIC",
+      "category": "global",
+      "visibility": "PUBLIC",
+      "action": "Phone destroyed"
+    },
+    {
+      "cinematic_id": "global_g13_police_raid",
+      "day": "global",
+      "faction": "DETECTIVE",
+      "category": "global",
+      "visibility": "PUBLIC",
+      "action": "Police raid"
+    },
+    {
+      "cinematic_id": "global_g14_mafia_location_compromised",
+      "day": "global",
+      "faction": "MAFIA",
+      "category": "global",
+      "visibility": "PUBLIC",
+      "action": "Mafia location compromised"
+    },
+    {
+      "cinematic_id": "global_g15_operation_successful",
+      "day": "global",
+      "faction": "PUBLIC",
+      "category": "global",
+      "visibility": "PUBLIC",
+      "action": "Operation successful"
+    },
+    {
+      "cinematic_id": "global_g16_operation_partially_failed",
+      "day": "global",
+      "faction": "PUBLIC",
+      "category": "global",
+      "visibility": "PUBLIC",
+      "action": "Operation partially failed"
+    },
+    {
+      "cinematic_id": "global_g17_critical_clue_discovered",
+      "day": "global",
+      "faction": "PUBLIC",
+      "category": "global",
+      "visibility": "PUBLIC",
+      "action": "Critical clue discovered"
+    },
+    {
+      "cinematic_id": "global_g18_false_lead_discovered",
+      "day": "global",
+      "faction": "PUBLIC",
+      "category": "global",
+      "visibility": "PUBLIC",
+      "action": "False lead discovered"
+    },
+    {
+      "cinematic_id": "global_g19_team_under_pressure",
+      "day": "global",
+      "faction": "PUBLIC",
+      "category": "global",
+      "visibility": "PUBLIC",
+      "action": "Team under pressure"
+    },
+    {
+      "cinematic_id": "global_g20_night_transition",
+      "day": "global",
+      "faction": "PUBLIC",
+      "category": "global",
+      "visibility": "PUBLIC",
+      "action": "Night transition / next day"
+    },
+    {
+      "cinematic_id": "enemy_ei01_cameras_offline",
+      "day": "enemy-impact",
+      "faction": "SANITIZED",
+      "category": "enemy_impact",
+      "visibility": "SANITIZED_ENEMY_IMPACT",
+      "action": "Camerasysteem blijkt plotseling offline"
+    },
+    {
+      "cinematic_id": "enemy_ei02_witness_retracts",
+      "day": "enemy-impact",
+      "faction": "SANITIZED",
+      "category": "enemy_impact",
+      "visibility": "SANITIZED_ENEMY_IMPACT",
+      "action": "Getuige trekt verklaring in"
+    },
+    {
+      "cinematic_id": "enemy_ei03_witness_missing",
+      "day": "enemy-impact",
+      "faction": "SANITIZED",
+      "category": "enemy_impact",
+      "visibility": "SANITIZED_ENEMY_IMPACT",
+      "action": "Getuige blijkt verdwenen"
+    },
+    {
+      "cinematic_id": "enemy_ei04_evidence_moved",
+      "day": "enemy-impact",
+      "faction": "SANITIZED",
+      "category": "enemy_impact",
+      "visibility": "SANITIZED_ENEMY_IMPACT",
+      "action": "Bewijs is verplaatst"
+    },
+    {
+      "cinematic_id": "enemy_ei05_unexpected_new_trail",
+      "day": "enemy-impact",
+      "faction": "SANITIZED",
+      "category": "enemy_impact",
+      "visibility": "SANITIZED_ENEMY_IMPACT",
+      "action": "Politie ontdekt onverwacht nieuw spoor"
+    },
+    {
+      "cinematic_id": "enemy_ei06_mafia_notices_surveillance",
+      "day": "enemy-impact",
+      "faction": "SANITIZED",
+      "category": "enemy_impact",
+      "visibility": "SANITIZED_ENEMY_IMPACT",
+      "action": "Mafia merkt verhoogde surveillance"
+    },
+    {
+      "cinematic_id": "enemy_ei07_location_compromised",
+      "day": "enemy-impact",
+      "faction": "SANITIZED",
+      "category": "enemy_impact",
+      "visibility": "SANITIZED_ENEMY_IMPACT",
+      "action": "Locatie blijkt gecompromitteerd"
+    },
+    {
+      "cinematic_id": "enemy_ei08_vehicle_followed",
+      "day": "enemy-impact",
+      "faction": "SANITIZED",
+      "category": "enemy_impact",
+      "visibility": "SANITIZED_ENEMY_IMPACT",
+      "action": "Voertuig wordt door politie gevolgd"
+    },
+    {
+      "cinematic_id": "enemy_ei09_comms_leaked",
+      "day": "enemy-impact",
+      "faction": "SANITIZED",
+      "category": "enemy_impact",
+      "visibility": "SANITIZED_ENEMY_IMPACT",
+      "action": "Communicatiekanaal lijkt gelekt"
+    },
+    {
+      "cinematic_id": "enemy_ei10_investigation_stalled",
+      "day": "enemy-impact",
+      "faction": "SANITIZED",
+      "category": "enemy_impact",
+      "visibility": "SANITIZED_ENEMY_IMPACT",
+      "action": "Onderzoek loopt plotseling vast"
+    }
+  ]
+}

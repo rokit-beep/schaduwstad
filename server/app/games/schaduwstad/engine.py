@@ -4,21 +4,24 @@ from collections import Counter
 from typing import Literal
 
 try:
-    from .content import DAYS, build_impacts, spec_for
+    from .content import DAYS, build_impacts, spec_for, follow_up_for
 except ImportError:
     import sys
     from pathlib import Path
 
     sys.path.insert(0, str(Path(__file__).resolve().parent))
-    from content import DAYS, build_impacts, spec_for
+    from content import DAYS, build_impacts, spec_for, follow_up_for
 
 TeamId = Literal["mafia", "detective"]
 
 TEAM_CAP = 6
 CASE_ID = "havenkade-12"
 AP_PER_DAY = 2
+ROUND_SECONDS = 600
 PLAYABLE = ("play", "briefing", "huddle", "personal", "action")
 PHASES = ("play", "result", "eval")
+EVIDENCE_BASE = 18
+HEAT_BASE = 28
 
 MAFIA_ACTIONS = (
     {
@@ -233,8 +236,8 @@ def resolve_day(
     m_all = set(m_pers + ([mafia_team] if mafia_team else []))
     d_all = set(d_pers + ([detective_team] if detective_team else []))
 
-    evidence = 18
-    heat = 28
+    evidence = EVIDENCE_BASE
+    heat = HEAT_BASE
     mafia_delta = 0
     detective_delta = 0
     clues: dict[str, dict] = {}
@@ -267,6 +270,7 @@ def resolve_day(
                 "team": team,
                 "evidenceDelta": ev,
                 "heatDelta": ht,
+                "followUp": follow_up_for(beat_id, team),
             }
         )
         events.append(effect)
@@ -302,8 +306,6 @@ def resolve_day(
         if cinematic in contested_ids:
             continue
         contested_ids.append(cinematic)
-        det_label = action_by_id(det_id)["label"]
-        maf_label = action_by_id(maf_id)["label"]
         if cinematic == "camera_conflict":
             d_ev, d_ht = 6, 10
             mafia_delta += SCORE["stalemate"]
@@ -345,7 +347,7 @@ def resolve_day(
         cinematics.append(_cue(cinematic, headline, "contested"))
         add_beat(
             beat_id=cinematic,
-            cause=f"{det_label} × {maf_label}",
+            cause=event,
             effect=event,
             cinematic=cinematic,
             team=None,
@@ -473,6 +475,15 @@ def resolve_day(
     evidence = max(0, min(100, evidence))
     heat = max(0, min(100, heat))
     band = "hidden" if evidence < 25 else "partial" if evidence < 70 else "verified"
+    follow_ups: list[dict] = []
+    for beat in beats:
+        if beat.get("followUp"):
+            follow_ups.append({"beatId": beat["id"], **beat["followUp"], "team": beat.get("team")})
+    for cid in contested_ids:
+        for team_id in ("mafia", "detective"):
+            extra = follow_up_for(cid, team_id)
+            if extra and not any(f.get("id") == extra["id"] and f.get("team") == team_id for f in follow_ups):
+                follow_ups.append({"beatId": cid, **extra, "team": team_id})
 
     if not m_all and not d_all:
         headline = "Stilte aan de kade."
@@ -487,8 +498,12 @@ def resolve_day(
         "mafiaDelta": mafia_delta,
         "detectiveDelta": detective_delta,
         "heat": heat,
+        "heatOld": HEAT_BASE,
+        "heatDelta": heat - HEAT_BASE,
         "evidence": band,
         "evidenceScore": evidence,
+        "evidenceOld": EVIDENCE_BASE,
+        "evidenceDelta": evidence - EVIDENCE_BASE,
         "headline": headline,
         "mafiaDebrief": mdef,
         "detectiveDebrief": ddef,
@@ -497,6 +512,7 @@ def resolve_day(
         "cinematics": cinematics,
         "clues": clues,
         "contested": contested_ids,
+        "followUps": follow_ups,
     }
 
 
@@ -504,6 +520,7 @@ def ops_dossier(heat: int, evidence_score: int, result: dict | None, personal: l
     protected = []
     threats = []
     risks = []
+    locations = []
     own = list(personal or []) or list((result or {}).get("mafiaPersonal") or [])
     contested = (result or {}).get("contested") or []
     if "move_vehicle" in own:
@@ -522,10 +539,15 @@ def ops_dossier(heat: int, evidence_score: int, result: dict | None, personal: l
         if "camera_conflict" in contested:
             threats.append("Recherche herstelde camerabeeld")
             risks.append("Kentekenfragment in omloop")
+            locations.append("Cameras kade — gecompromitteerd")
         if "vehicle_conflict" in contested:
             threats.append("Bandensporen niet schoon")
+            locations.append("Parkeerplaats Havenkade 12 — sporen")
         if "witness_conflict" in contested:
             risks.append("Rik is onbetrouwbaar geworden")
+            locations.append("Veerhaven — getuige wankel")
+        if "conflict" in contested:
+            locations.append("Loods Van Dorp — administratie geraakt")
         if evidence_score >= 70:
             threats.append("Dossier nadert afronding")
         if heat >= 60:
@@ -540,4 +562,5 @@ def ops_dossier(heat: int, evidence_score: int, result: dict | None, personal: l
         "protected": protected,
         "threats": threats,
         "risks": risks or (["Houd de kade stil"] if not result else ["Nachtrust is een luxe"]),
+        "locations": locations or ["Havenkade 12 — nog stil"],
     }

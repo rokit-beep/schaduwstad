@@ -72,13 +72,18 @@ class MainActivity : ComponentActivity() {
                             onSend = vm::sendChat,
                             onVote = vm::vote,
                             onPersonal = vm::personal,
+                            onLock = vm::lockActions,
+                            onUnlock = vm::unlockActions,
                             onAdvance = vm::advance,
                             onLeave = vm::leaveToMenu,
                             onToggleDossier = vm::toggleDossier,
+                            onToggleInbox = vm::toggleInbox,
                             onShareClue = vm::shareClue,
                             onReplay = vm::replayCinematic,
                             onCinematicFinished = vm::cinematicFinished,
                             onImpactAck = vm::impactAcked,
+                            onFollowUp = vm::followup,
+                            onDismissConsequence = vm::dismissConsequence,
                         )
                     }
                 }

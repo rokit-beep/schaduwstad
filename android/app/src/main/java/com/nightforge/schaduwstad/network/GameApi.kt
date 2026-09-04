@@ -54,6 +54,9 @@ class GameApi(
     suspend fun personal(config: ConnectionConfig, session: Session, action: String): SessionView =
         post(config, "$prefix/lobbies/${session.lobbyCode}/actions/personal", json.encodeToString(VoteBody(action)), session.token)
 
+    suspend fun followup(config: ConnectionConfig, session: Session, action: String): SessionView =
+        post(config, "$prefix/lobbies/${session.lobbyCode}/actions/followup", json.encodeToString(VoteBody(action)), session.token)
+
     suspend fun advance(config: ConnectionConfig, session: Session): SessionView =
         post(config, "$prefix/lobbies/${session.lobbyCode}/actions/advance", "", session.token)
 

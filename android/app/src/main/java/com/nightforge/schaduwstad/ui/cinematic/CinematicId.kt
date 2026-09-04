@@ -23,6 +23,16 @@ enum class CinematicId(val wire: String, val raw: String, val thumb: String) {
     CLUE_LEDGER("clue_kasboek", "cin_clue_kasboek", "thumb_clue_kasboek"),
     CLUE_TIRE("clue_bandenspoor", "cin_clue_bandenspoor", "thumb_clue_bandenspoor"),
     CLUE_SOOT("clue_roetmap", "cin_clue_roetmap", "thumb_clue_roetmap"),
+    EI01("enemy_ei01_cameras_offline", "cin_ei01_cameras_offline", "thumb_ei01_cameras_offline"),
+    EI02("enemy_ei02_witness_retracts", "cin_ei02_witness_retracts", "thumb_ei02_witness_retracts"),
+    EI03("enemy_ei03_witness_missing", "cin_ei03_witness_missing", "thumb_ei03_witness_missing"),
+    EI04("enemy_ei04_evidence_moved", "cin_ei04_evidence_moved", "thumb_ei04_evidence_moved"),
+    EI05("enemy_ei05_unexpected_new_trail", "cin_ei05_unexpected_new_trail", "thumb_ei05_unexpected_new_trail"),
+    EI06("enemy_ei06_mafia_notices_surveillance", "cin_ei06_mafia_notices_surveillance", "thumb_ei06_mafia_notices_surveillance"),
+    EI07("enemy_ei07_location_compromised", "cin_ei07_location_compromised", "thumb_ei07_location_compromised"),
+    EI08("enemy_ei08_vehicle_followed", "cin_ei08_vehicle_followed", "thumb_ei08_vehicle_followed"),
+    EI09("enemy_ei09_comms_leaked", "cin_ei09_comms_leaked", "thumb_ei09_comms_leaked"),
+    EI10("enemy_ei10_investigation_stalled", "cin_ei10_investigation_stalled", "thumb_ei10_investigation_stalled"),
     ;
 
     fun rawRes(context: Context): Int =

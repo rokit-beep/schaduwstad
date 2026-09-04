@@ -85,11 +85,12 @@ def test_team_chat_and_secret_isolation(client):
     ).json()
     assert any("SCH-14-X" in m["body"] for m in mafia_state["chat"])
     assert detective_state["chat"] == []
-    assert "SCH-14-X" not in detective_state["briefing"]
+    assert "SCH-14-X" not in (detective_state["briefing"] or "")
     assert "Van Dorp" in mafia_state["briefing"]
-    serialized = str(detective_state).lower()
-    assert "sch-14-x" not in serialized
-    assert "kasboek" not in serialized
+    assert "kasboek" not in (detective_state["briefing"] or "").lower()
+    assert "sch-14-x" not in (detective_state["briefing"] or "").lower()
+    # unknown slots in the zaakdossier are not a leak of mafia briefing
+    assert all(m["team"] != "mafia" for m in detective_state["chat"])
 
 
 def test_parallel_actions_neither_team_waits(client):
@@ -269,3 +270,124 @@ def test_enemy_impact_live_ack_and_offline_return(client):
     # evidence / heat only after resolve
     assert 0 < det["evidenceScore"] <= 100
     assert 0 < det["heat"] <= 100
+    blob = str(mafia) + str(det)
+    assert "source" not in str(mafia["impacts"]).lower() or '"source"' not in json_impacts(mafia)
+    assert all("source" not in i for i in mafia["impacts"])
+    assert all("source" not in i for i in det["impacts"])
+
+
+def json_impacts(view):
+    return str(view.get("impacts"))
+
+
+def test_no_live_meters_or_enemy_roster_during_play(client):
+    code, host_token, ghost_token = _two_ready(client)
+    mafia = client.get(f"/games/schaduwstad/api/lobbies/{code}/state", headers=auth(host_token)).json()
+    assert mafia["you"]["ready"] is False
+    assert mafia["heat"] == 0
+    assert mafia["evidenceScore"] == 0
+    assert mafia["opponentStatus"] == "RONDE ACTIEF"
+    assert mafia["teamReady"]["ready"] == 0
+    assert mafia["teamReady"]["total"] == 1
+    assert all(p["team"] == "mafia" for p in mafia["players"])
+    det_act = client.post(
+        f"/games/schaduwstad/api/lobbies/{code}/actions/personal",
+        json={"action": "camera_analysis"},
+        headers=auth(ghost_token),
+    ).json()
+    assert det_act["phase"] == "play"
+    mafia_after = client.get(f"/games/schaduwstad/api/lobbies/{code}/state", headers=auth(host_token)).json()
+    assert mafia_after["phase"] == "play"
+    assert mafia_after["heat"] == 0
+    assert mafia_after["evidenceScore"] == 0
+    assert mafia_after["unseenImpacts"] == []
+    assert "camera_analysis" not in str(mafia_after).lower()
+    assert all(p["team"] == "mafia" for p in mafia_after["players"])
+
+
+def test_round_ready_auto_resolves_without_waiting_on_host_button(client):
+    code, host_token, ghost_token = _two_ready(client)
+    client.post(
+        f"/games/schaduwstad/api/lobbies/{code}/actions/personal",
+        json={"action": "camera_sabotage"},
+        headers=auth(host_token),
+    )
+    client.post(
+        f"/games/schaduwstad/api/lobbies/{code}/actions/personal",
+        json={"action": "camera_analysis"},
+        headers=auth(ghost_token),
+    )
+    first = client.post(
+        f"/games/schaduwstad/api/lobbies/{code}/ready",
+        json={"ready": True},
+        headers=auth(host_token),
+    ).json()
+    assert first["phase"] == "play"
+    assert first["you"]["ready"] is True
+    locked = client.post(
+        f"/games/schaduwstad/api/lobbies/{code}/actions/personal",
+        json={"action": "move_vehicle"},
+        headers=auth(host_token),
+    )
+    assert locked.status_code == 409
+    resolved = client.post(
+        f"/games/schaduwstad/api/lobbies/{code}/ready",
+        json={"ready": True},
+        headers=auth(ghost_token),
+    ).json()
+    assert resolved["phase"] == "result"
+    mafia = client.get(f"/games/schaduwstad/api/lobbies/{code}/state", headers=auth(host_token)).json()
+    det = client.get(f"/games/schaduwstad/api/lobbies/{code}/state", headers=auth(ghost_token)).json()
+    assert mafia["phase"] == det["phase"] == "result"
+    assert mafia["result"]["mafiaAction"] is None
+    assert mafia["result"]["detectiveAction"] is None
+    assert det["result"]["mafiaAction"] is None
+    assert mafia["developments"]
+    assert det["developments"]
+    assert all(d.get("team") != "detective" for d in mafia["developments"])
+
+
+def test_followup_once_and_eval_hides_enemy_actions(client):
+    code, host_token, ghost_token = _two_ready(client)
+    client.post(
+        f"/games/schaduwstad/api/lobbies/{code}/actions/personal",
+        json={"action": "camera_sabotage"},
+        headers=auth(host_token),
+    )
+    client.post(
+        f"/games/schaduwstad/api/lobbies/{code}/actions/personal",
+        json={"action": "camera_analysis"},
+        headers=auth(ghost_token),
+    )
+    client.post(f"/games/schaduwstad/api/lobbies/{code}/actions/advance", headers=auth(host_token))
+    det = client.get(f"/games/schaduwstad/api/lobbies/{code}/state", headers=auth(ghost_token)).json()
+    assert det["clues"]
+    assert any(c["status"] == "unknown" for c in det["clues"]) or any(
+        c["status"] in ("discovered", "disputed", "verified") for c in det["clues"]
+    )
+    follow_ups = det["result"]["followUps"]
+    assert follow_ups
+    choice = follow_ups[0]["id"]
+    ok = client.post(
+        f"/games/schaduwstad/api/lobbies/{code}/actions/followup",
+        json={"action": choice},
+        headers=auth(ghost_token),
+    )
+    assert ok.status_code == 200
+    again = client.post(
+        f"/games/schaduwstad/api/lobbies/{code}/actions/followup",
+        json={"action": choice},
+        headers=auth(ghost_token),
+    )
+    assert again.status_code == 409
+    eval_state = client.post(
+        f"/games/schaduwstad/api/lobbies/{code}/actions/advance", headers=auth(host_token)
+    ).json()
+    assert eval_state["phase"] == "eval"
+    assert eval_state["result"]["mafiaAction"] is None
+    assert eval_state["result"]["detectiveAction"] is None
+    assert "camera_analysis" not in str(eval_state["result"].get("mafiaPersonal"))
+    mafia = client.get(f"/games/schaduwstad/api/lobbies/{code}/state", headers=auth(host_token)).json()
+    assert mafia["opsDossier"]
+    assert "locations" in mafia["opsDossier"]
+

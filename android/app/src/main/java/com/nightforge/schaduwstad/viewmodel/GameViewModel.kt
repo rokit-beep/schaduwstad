@@ -43,6 +43,8 @@ data class UiState(
     val impactQueue: List<Impact> = emptyList(),
     val dossierOpen: Boolean = false,
     val replayCue: CinematicCue? = null,
+    val showConsequence: Boolean = false,
+    val inboxOpen: Boolean = false,
 )
 
 class GameViewModel(app: Application) : AndroidViewModel(app) {
@@ -98,15 +100,23 @@ class GameViewModel(app: Application) : AndroidViewModel(app) {
     fun setJoinCode(value: String) { _ui.update { it.copy(joinCode = value.filter { ch -> ch.isLetterOrDigit() }.take(4).uppercase()) } }
     fun setChatDraft(value: String) { _ui.update { it.copy(chatDraft = value.take(240)) } }
     fun clearError() { _ui.update { it.copy(error = null, notice = null) } }
-    fun toggleDossier() { _ui.update { it.copy(dossierOpen = !it.dossierOpen) } }
+    fun toggleDossier() { _ui.update { it.copy(dossierOpen = !it.dossierOpen, inboxOpen = false) } }
     fun closeDossier() { _ui.update { it.copy(dossierOpen = false) } }
+    fun toggleInbox() { _ui.update { it.copy(inboxOpen = !it.inboxOpen, dossierOpen = false) } }
 
     fun cinematicFinished() {
         val ids = _ui.value.cinematicQueue.map { it.id }
         val view = _ui.value.view
-        _ui.update { it.copy(cinematicQueue = emptyList(), replayCue = null) }
-        showImpactsIfAny(view)
+        val consequence = view?.phase == "result" || view?.phase == "eval"
+        _ui.update { it.copy(cinematicQueue = emptyList(), replayCue = null, showConsequence = consequence && it.replayCue == null) }
+        if (!consequence) showImpactsIfAny(view)
         if (ids.isNotEmpty()) ackSeen(cinematics = ids)
+    }
+
+    fun dismissConsequence() {
+        val view = _ui.value.view
+        _ui.update { it.copy(showConsequence = false) }
+        showImpactsIfAny(view)
     }
 
     fun impactAcked() {
@@ -194,6 +204,18 @@ class GameViewModel(app: Application) : AndroidViewModel(app) {
         applyView(api.personal(cfg, requireSession(), action)); null
     }
 
+    fun followup(action: String) = mutate { cfg, _ ->
+        applyView(api.followup(cfg, requireSession(), action)); null
+    }
+
+    fun lockActions() = mutate { cfg, _ ->
+        applyView(api.setReady(cfg, requireSession(), true)); null
+    }
+
+    fun unlockActions() = mutate { cfg, _ ->
+        applyView(api.setReady(cfg, requireSession(), false)); null
+    }
+
     fun advance() = mutate { cfg, _ ->
         applyView(api.advance(cfg, requireSession())); null
     }
@@ -217,7 +239,7 @@ class GameViewModel(app: Application) : AndroidViewModel(app) {
         pollJob?.cancel()
         socket.close()
         playedCinKey = null
-        _ui.update { it.copy(dest = Dest.Menu, session = null, view = null, error = null, cinematicQueue = emptyList(), impactQueue = emptyList(), dossierOpen = false) }
+        _ui.update { it.copy(dest = Dest.Menu, session = null, view = null, error = null, cinematicQueue = emptyList(), impactQueue = emptyList(), dossierOpen = false, showConsequence = false, inboxOpen = false) }
     }
 
     private fun attach(view: SessionView) {
@@ -235,14 +257,15 @@ class GameViewModel(app: Application) : AndroidViewModel(app) {
             view.status == "waiting" && _ui.value.session != null -> Dest.Lobby
             else -> _ui.value.dest
         }
-        val key = "${view.day}:${view.phase}:cin"
-        val cinQueue = if (view.unseenCinematics.isNotEmpty() && key != playedCinKey) {
+        val cinIds = view.unseenCinematics.joinToString(separator = ",") { it.id }
+        val key = "${view.day}:${view.phase}:$cinIds"
+        val cinQueue = if (view.unseenCinematics.isNotEmpty() && key != playedCinKey && _ui.value.replayCue == null) {
             playedCinKey = key
             view.unseenCinematics
         } else {
             _ui.value.cinematicQueue
         }
-        val impacts = if (cinQueue.isEmpty() && view.unseenImpacts.isNotEmpty() && _ui.value.replayCue == null) {
+        val impacts = if (cinQueue.isEmpty() && !_ui.value.showConsequence && view.unseenImpacts.isNotEmpty() && _ui.value.replayCue == null) {
             view.unseenImpacts
         } else {
             _ui.value.impactQueue.filter { impact -> view.unseenImpacts.any { it.id == impact.id } }
