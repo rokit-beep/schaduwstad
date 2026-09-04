@@ -140,7 +140,9 @@ fun HowScreen(onBack: () -> Unit) {
             Spacer(Modifier.height(14.dp))
             HowBlock("DETECTIVES", "Verzamel bewijs.\nWerk samen.\nOntmasker de organisatie.", Ice)
             Spacer(Modifier.height(14.dp))
-            HowBlock("VERTROUW NIEMAND", "Later kunnen verborgen rollen zelfs binnen je eigen team gevaarlijk worden. In v0.1 speel je Dag 1: Havenkade 12.", Amber)
+            HowBlock("DAG 1", "Briefing, teamoverleg, 2 actiepunten voor persoonlijke zetten, daarna één teamstrategie. De server beslist. Cinematics volgen de uitkomst — nooit andersom.", Amber)
+            Spacer(Modifier.height(14.dp))
+            HowBlock("VERTROUW NIEMAND", "Teamchat en dossiers lekken nooit naar de overkant. Later kunnen verborgen rollen zelfs binnen je eigen team gevaarlijk worden.", Fog)
             Spacer(Modifier.height(22.dp))
             GhostButton("Begrepen", onBack, Fog)
         }

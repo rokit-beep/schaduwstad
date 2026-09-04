@@ -50,11 +50,14 @@ class GameApi(
     suspend fun vote(config: ConnectionConfig, session: Session, action: String): SessionView =
         post(config, "$prefix/lobbies/${session.lobbyCode}/actions/vote", json.encodeToString(VoteBody(action)), session.token)
 
+    suspend fun personal(config: ConnectionConfig, session: Session, action: String): SessionView =
+        post(config, "$prefix/lobbies/${session.lobbyCode}/actions/personal", json.encodeToString(VoteBody(action)), session.token)
+
     suspend fun advance(config: ConnectionConfig, session: Session): SessionView =
         post(config, "$prefix/lobbies/${session.lobbyCode}/actions/advance", "", session.token)
 
-    suspend fun chat(config: ConnectionConfig, session: Session, body: String): SessionView =
-        post(config, "$prefix/lobbies/${session.lobbyCode}/chat", json.encodeToString(ChatBody(body)), session.token)
+    suspend fun chat(config: ConnectionConfig, session: Session, body: String, share: String? = null): SessionView =
+        post(config, "$prefix/lobbies/${session.lobbyCode}/chat", json.encodeToString(ChatBody(body, share)), session.token)
 
     private suspend inline fun <reified T> get(config: ConnectionConfig, path: String, token: String?): T =
         execute(Request.Builder().url(config.httpBaseUrl() + path).apply { token?.let { header("Authorization", "Bearer $it") } }.get().build())

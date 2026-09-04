@@ -1,0 +1,32 @@
+SCHADUWSTAD CINEMATICS ASSET PASS
+created: 2026-09-04T02:12:00Z
+style: existing Schaduwstad intro — wet night harbor, amber vs ice-blue, rain, fog
+gameplay: NOT WIRED
+servers: NOT TOUCHED (8098 / OpenNight 4520)
+github: NOT PUSHED
+video: 16:9, duration 6.04s each (tool max nearest to 5–10s)
+
+SET
+D01 camera analysis          detective/D01-camera-analysis.{mp4,jpg,thumb.jpg}
+D02 evidence inspection      detective/D02-evidence-inspection.{mp4,jpg,thumb.jpg}
+D03 license plate            detective/D03-license-plate.{mp4,jpg,thumb.jpg}
+D04 tire tracks              detective/D04-tire-tracks.{mp4,jpg,thumb.jpg}
+D05 witness                  detective/D05-witness.{mp4,jpg,thumb.jpg}
+D06 container records        detective/D06-container-records.{mp4,jpg,thumb.jpg}
+M01 move vehicle             mafia/M01-move-vehicle.{mp4,jpg,thumb.jpg}
+M02 camera sabotage          mafia/M02-camera-sabotage.{mp4,jpg,thumb.jpg}
+M03 move evidence            mafia/M03-move-evidence.{mp4,jpg,thumb.jpg}
+M04 warn contact             mafia/M04-warn-contact.{mp4,jpg,thumb.jpg}
+M05 false alibi              mafia/M05-false-alibi.{mp4,jpg,thumb.jpg}
+M06 pressure witness         mafia/M06-pressure-witness.{mp4,jpg,thumb.jpg}
+contested camera             contested/camera-conflict.{mp4,jpg,thumb.jpg}
+contested conflict           contested/conflict.{mp4,jpg,thumb.jpg}
+contested witness conflict   contested/witness-conflict.{mp4,jpg,thumb.jpg}
+contested vehicle conflict   contested/vehicle-conflict.{mp4,jpg,thumb.jpg}
+clue 1 kenteken              clues/clue-01-kenteken.{mp4,jpg,thumb.jpg}
+clue 2 kasboek               clues/clue-02-kasboek.{mp4,jpg,thumb.jpg}
+clue 3 bandenspoor           clues/clue-03-bandenspoor.{mp4,jpg,thumb.jpg}
+clue 4 roet/map              clues/clue-04-roetmap.{mp4,jpg,thumb.jpg}
+
+COUNTS: 20 mp4 + 20 stills + 20 thumbs
+MISSING REQUESTED CLIPS: none

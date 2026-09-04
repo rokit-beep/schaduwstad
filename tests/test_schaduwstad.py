@@ -137,6 +137,7 @@ def test_day1_score_is_server_side(client):
     client.post(f"/games/schaduwstad/api/lobbies/{code}/start", headers=auth(host_token))
     client.post(f"/games/schaduwstad/api/lobbies/{code}/actions/advance", headers=auth(host_token))
     client.post(f"/games/schaduwstad/api/lobbies/{code}/actions/advance", headers=auth(host_token))
+    client.post(f"/games/schaduwstad/api/lobbies/{code}/actions/advance", headers=auth(host_token))
     client.post(
         f"/games/schaduwstad/api/lobbies/{code}/actions/vote",
         json={"action": "wipe_trace"},
@@ -158,3 +159,51 @@ def test_day1_score_is_server_side(client):
     ).json()
     assert eval_state["phase"] == "eval"
     assert eval_state["result"]["headline"]
+
+
+def test_personal_ap_and_cinematic_isolation(client):
+    code, host_token, _ = _create(client, "Don")
+    ghost_token = client.post(
+        f"/games/schaduwstad/api/lobbies/{code}/join", json={"player_name": "Inspecteur"}
+    ).json()["session_token"]
+    client.post(f"/games/schaduwstad/api/lobbies/{code}/team", json={"team": "mafia"}, headers=auth(host_token))
+    client.post(f"/games/schaduwstad/api/lobbies/{code}/team", json={"team": "detective"}, headers=auth(ghost_token))
+    client.post(f"/games/schaduwstad/api/lobbies/{code}/ready", json={"ready": True}, headers=auth(host_token))
+    client.post(f"/games/schaduwstad/api/lobbies/{code}/ready", json={"ready": True}, headers=auth(ghost_token))
+    client.post(f"/games/schaduwstad/api/lobbies/{code}/start", headers=auth(host_token))
+    client.post(f"/games/schaduwstad/api/lobbies/{code}/actions/advance", headers=auth(host_token))
+    client.post(f"/games/schaduwstad/api/lobbies/{code}/actions/advance", headers=auth(host_token))
+    mafia = client.get(f"/games/schaduwstad/api/lobbies/{code}/state", headers=auth(host_token)).json()
+    assert mafia["phase"] == "personal"
+    assert mafia["you"]["ap"] == 2
+    spent = client.post(
+        f"/games/schaduwstad/api/lobbies/{code}/actions/personal",
+        json={"action": "camera_sabotage"},
+        headers=auth(host_token),
+    ).json()
+    assert spent["you"]["ap"] == 1
+    over = client.post(
+        f"/games/schaduwstad/api/lobbies/{code}/actions/personal",
+        json={"action": "pressure_witness"},
+        headers=auth(host_token),
+    )
+    assert over.status_code == 409
+    client.post(
+        f"/games/schaduwstad/api/lobbies/{code}/actions/personal",
+        json={"action": "camera_analysis"},
+        headers=auth(ghost_token),
+    )
+    client.post(f"/games/schaduwstad/api/lobbies/{code}/actions/advance", headers=auth(host_token))
+    client.post(f"/games/schaduwstad/api/lobbies/{code}/actions/advance", headers=auth(host_token))
+    mafia_view = client.get(f"/games/schaduwstad/api/lobbies/{code}/state", headers=auth(host_token)).json()
+    det_view = client.get(f"/games/schaduwstad/api/lobbies/{code}/state", headers=auth(ghost_token)).json()
+    assert mafia_view["phase"] == "result"
+    mafia_ids = [c["id"] for c in mafia_view["result"]["cinematics"]]
+    det_ids = [c["id"] for c in det_view["result"]["cinematics"]]
+    assert "camera_conflict" in mafia_ids
+    assert "camera_conflict" in det_ids
+    assert not any(i.startswith("clue_") for i in mafia_ids)
+    assert det_view["clues"]
+    assert mafia_view["clues"] == []
+    assert mafia_view["opsDossier"] is not None
+    assert det_view["opsDossier"] is None

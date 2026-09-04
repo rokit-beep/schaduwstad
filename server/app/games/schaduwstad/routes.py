@@ -26,7 +26,8 @@ class VoteBody(BaseModel):
 
 
 class ChatBody(BaseModel):
-    body: str = Field(min_length=1, max_length=240)
+    body: str = Field(default="", max_length=240)
+    share: str | None = None
 
 
 def _token(authorization: str | None) -> str:
@@ -73,13 +74,17 @@ def build_router(store: SchaduwstadStore, hub: SchaduwstadHub) -> APIRouter:
     async def vote(body: VoteBody, authorization: str | None = Header(default=None)):
         return await _push(store.vote(_token(authorization), body.action))
 
+    @api.post("/lobbies/{code}/actions/personal")
+    async def personal(body: VoteBody, authorization: str | None = Header(default=None)):
+        return await _push(store.act_personal(_token(authorization), body.action))
+
     @api.post("/lobbies/{code}/actions/advance")
     async def advance(authorization: str | None = Header(default=None)):
         return await _push(store.advance(_token(authorization)))
 
     @api.post("/lobbies/{code}/chat")
     async def chat(body: ChatBody, authorization: str | None = Header(default=None)):
-        return await _push(store.chat(_token(authorization), body.body))
+        return await _push(store.chat(_token(authorization), body.body, body.share))
 
     @api.websocket("/ws/{code}")
     async def ws(websocket: WebSocket, code: str):
@@ -92,7 +97,7 @@ def build_router(store: SchaduwstadStore, hub: SchaduwstadHub) -> APIRouter:
             while True:
                 message = await websocket.receive_json()
                 if message.get("type") == "chat":
-                    view = store.chat(token, message.get("body", ""))
+                    view = store.chat(token, message.get("body", ""), message.get("share"))
                     await hub.push(view["lobbyCode"])
                 else:
                     view = store.view(token)

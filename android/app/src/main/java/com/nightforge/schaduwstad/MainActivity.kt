@@ -71,8 +71,13 @@ class MainActivity : ComponentActivity() {
                             onDraft = vm::setChatDraft,
                             onSend = vm::sendChat,
                             onVote = vm::vote,
+                            onPersonal = vm::personal,
                             onAdvance = vm::advance,
                             onLeave = vm::leaveToMenu,
+                            onToggleDossier = vm::toggleDossier,
+                            onShareClue = vm::shareClue,
+                            onReplay = vm::replayCinematic,
+                            onCinematicFinished = vm::cinematicFinished,
                         )
                     }
                 }

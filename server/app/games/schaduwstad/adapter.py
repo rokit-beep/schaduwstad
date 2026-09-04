@@ -36,7 +36,7 @@ def create_schaduwstad_module(database_path: Path, connections) -> GameModule:
                 while True:
                     message = await websocket.receive_json()
                     if message.get("type") == "chat":
-                        view = store.chat(token, message.get("body", ""))
+                        view = store.chat(token, message.get("body", ""), message.get("share"))
                         await hub.push(view["lobbyCode"])
                     else:
                         view = store.view(token)
@@ -51,6 +51,6 @@ def create_schaduwstad_module(database_path: Path, connections) -> GameModule:
     return GameModule(
         game_id="schaduwstad",
         display_name="Schaduwstad",
-        version="0.1.0",
+        version="0.1.1",
         register_routes=register_routes,
     )

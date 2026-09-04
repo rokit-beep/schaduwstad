@@ -35,6 +35,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.nightforge.schaduwstad.R
@@ -122,7 +123,18 @@ fun SectionTitle(text: String, accent: Color = Amber) {
 @Composable
 fun BrandMark() {
     Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
-        Text("SCHADUWSTAD", color = Color.White, fontFamily = FontFamily.Serif, fontWeight = FontWeight.Bold, fontSize = 38.sp, letterSpacing = 4.sp, textAlign = TextAlign.Center)
+        Text(
+            "SCHADUWSTAD",
+            color = Color.White,
+            fontFamily = FontFamily.Serif,
+            fontWeight = FontWeight.Bold,
+            fontSize = 32.sp,
+            letterSpacing = 2.sp,
+            textAlign = TextAlign.Center,
+            maxLines = 1,
+            overflow = TextOverflow.Clip,
+            modifier = Modifier.fillMaxWidth(),
+        )
         Spacer(Modifier.height(6.dp))
         Text("VERTROUW. BEDRIEG. OVERLEEF.", color = PaperRed, letterSpacing = 3.sp, fontSize = 11.sp)
     }

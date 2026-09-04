@@ -9,10 +9,21 @@ from uuid import uuid4
 
 from app.errors import GameError
 
-from .engine import CASE_ID, TEAM_CAP, actions_for, briefing_for, majority, resolve_day
+from .engine import (
+    AP_PER_DAY,
+    CASE_ID,
+    PHASES,
+    TEAM_CAP,
+    action_by_id,
+    actions_for,
+    briefing_for,
+    canonicalize,
+    majority,
+    ops_dossier,
+    resolve_day,
+)
 
 CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
-PHASES = ("briefing", "huddle", "action", "result", "eval")
 
 
 def _now() -> str:
@@ -39,6 +50,7 @@ class SchaduwstadStore:
 
     def _connect(self):
         import sqlite3
+
         con = sqlite3.connect(self.path)
         con.row_factory = sqlite3.Row
         return con
@@ -59,6 +71,13 @@ class SchaduwstadStore:
                 (lobby["code"], payload, _now()),
             )
 
+    def _fresh_match_fields(self, lobby: dict) -> None:
+        lobby["votes"] = {}
+        lobby["personal"] = {}
+        lobby["ap"] = {p["id"]: AP_PER_DAY for p in lobby["players"]}
+        lobby["result"] = None
+        lobby["clues"] = lobby.get("clues") or {}
+
     def create(self, player_name: str) -> tuple[str, dict]:
         name = player_name.strip()[:20]
         if len(name) < 2:
@@ -76,12 +95,18 @@ class SchaduwstadStore:
                 "day": 1,
                 "phase": "briefing",
                 "caseId": CASE_ID,
-                "players": [{"id": player_id, "name": name, "team": None, "ready": False, "token": token}],
+                "players": [
+                    {"id": player_id, "name": name, "team": None, "ready": False, "token": token}
+                ],
                 "chat": [],
                 "votes": {},
+                "personal": {},
+                "ap": {player_id: AP_PER_DAY},
                 "scores": {"mafia": 0, "detective": 0},
                 "heat": 0,
                 "evidence": "hidden",
+                "evidenceScore": 0,
+                "clues": {},
                 "result": None,
             }
             self._memory[code] = lobby
@@ -102,7 +127,10 @@ class SchaduwstadStore:
                 raise GameError("name_taken", "Die naam is al in gebruik.", 409)
             player_id = str(uuid4())
             token = str(uuid4())
-            lobby["players"].append({"id": player_id, "name": name, "team": None, "ready": False, "token": token})
+            lobby["players"].append(
+                {"id": player_id, "name": name, "team": None, "ready": False, "token": token}
+            )
+            lobby.setdefault("ap", {})[player_id] = AP_PER_DAY
             self._persist(lobby)
         return token, self.view(token)
 
@@ -143,8 +171,7 @@ class SchaduwstadStore:
                 raise GameError("not_ready", "Iedereen moet ready zijn.", 400)
             lobby["status"] = "started"
             lobby["phase"] = "briefing"
-            lobby["votes"] = {}
-            lobby["result"] = None
+            self._fresh_match_fields(lobby)
             self._persist(lobby)
         return self.view(token)
 
@@ -153,31 +180,68 @@ class SchaduwstadStore:
             lobby, player = self._by_token(token)
             if lobby["status"] != "started" or lobby["phase"] != "action":
                 raise GameError("wrong_phase", "Nu kan er niet gestemd worden.", 409)
+            canon = canonicalize(action)
             allowed = {item["id"] for item in actions_for(player["team"])}
-            if action not in allowed:
+            if canon not in allowed:
                 raise GameError("bad_action", "Die actie hoort niet bij jouw team.", 400)
-            lobby["votes"][player["id"]] = action
+            lobby["votes"][player["id"]] = canon
             self._persist(lobby)
         return self.view(token)
 
-    def chat(self, token: str, body: str) -> dict:
-        text = body.strip()[:240]
-        if not text:
+    def act_personal(self, token: str, action: str) -> dict:
+        with self._lock:
+            lobby, player = self._by_token(token)
+            if lobby["status"] != "started" or lobby["phase"] != "personal":
+                raise GameError("wrong_phase", "Nu kan er geen persoonlijke actie.", 409)
+            item = action_by_id(action)
+            if not item:
+                raise GameError("bad_action", "Onbekende actie.", 400)
+            allowed = {a["id"] for a in actions_for(player["team"])}
+            if item["id"] not in allowed:
+                raise GameError("bad_action", "Die actie hoort niet bij jouw team.", 400)
+            taken = lobby.setdefault("personal", {}).setdefault(player["id"], [])
+            if item["id"] in taken:
+                raise GameError("already", "Die actie is al uitgevoerd.", 409)
+            ap = lobby.setdefault("ap", {}).get(player["id"], AP_PER_DAY)
+            cost = int(item.get("ap") or 1)
+            if ap < cost:
+                raise GameError("no_ap", "Niet genoeg actiepunten.", 409)
+            lobby["ap"][player["id"]] = ap - cost
+            taken.append(item["id"])
+            self._persist(lobby)
+        return self.view(token)
+
+    def chat(self, token: str, body: str, share: str | None = None) -> dict:
+        text = (body or "").strip()[:240]
+        share_id = (share or "").strip() or None
+        if not text and not share_id:
             raise GameError("empty", "Leeg bericht.", 400)
         with self._lock:
             lobby, player = self._by_token(token)
             if not player["team"]:
                 raise GameError("no_team", "Kies eerst een team.", 400)
-            lobby["chat"].append(
-                {
-                    "id": str(uuid4()),
-                    "team": player["team"],
-                    "senderId": player["id"],
-                    "senderName": player["name"],
-                    "body": text,
-                    "at": _now(),
+            payload: dict = {
+                "id": str(uuid4()),
+                "team": player["team"],
+                "senderId": player["id"],
+                "senderName": player["name"],
+                "body": text or f"{player['name']} deelde een clue",
+                "at": _now(),
+            }
+            if share_id:
+                if player["team"] != "detective":
+                    raise GameError("forbidden", "Alleen recherche deelt clues.", 403)
+                clue = (lobby.get("clues") or {}).get(share_id)
+                if not clue:
+                    raise GameError("missing_clue", "Die clue zit niet in het dossier.", 404)
+                payload["share"] = {
+                    "kind": "clue",
+                    "clueId": clue["id"],
+                    "label": clue["name"],
+                    "status": clue["status"],
                 }
-            )
+                payload["body"] = text or f"{player['name']} deelde {clue['name']}"
+            lobby["chat"].append(payload)
             lobby["chat"] = lobby["chat"][-80:]
             self._persist(lobby)
         return self.view(token)
@@ -200,15 +264,39 @@ class SchaduwstadStore:
                     for p in lobby["players"]
                     if p["team"] == "detective" and lobby["votes"].get(p["id"])
                 ]
-                result = resolve_day(majority(mafia_votes), majority(det_votes))
+                mafia_personal = [
+                    a
+                    for p in lobby["players"]
+                    if p["team"] == "mafia"
+                    for a in lobby.get("personal", {}).get(p["id"], [])
+                ]
+                det_personal = [
+                    a
+                    for p in lobby["players"]
+                    if p["team"] == "detective"
+                    for a in lobby.get("personal", {}).get(p["id"], [])
+                ]
+                result = resolve_day(
+                    majority(mafia_votes),
+                    majority(det_votes),
+                    mafia_personal,
+                    det_personal,
+                )
                 lobby["result"] = result
                 lobby["scores"]["mafia"] += result["mafiaDelta"]
                 lobby["scores"]["detective"] += result["detectiveDelta"]
                 lobby["heat"] = result["heat"]
                 lobby["evidence"] = result["evidence"]
+                lobby["evidenceScore"] = result["evidenceScore"]
+                merged = lobby.setdefault("clues", {})
+                for clue_id, clue in result.get("clues", {}).items():
+                    prev = merged.get(clue_id)
+                    rank = {"unknown": 0, "disputed": 1, "discovered": 2, "verified": 3}
+                    if not prev or rank.get(clue["status"], 0) >= rank.get(prev.get("status"), 0):
+                        merged[clue_id] = clue
                 lobby["phase"] = "result"
             else:
-                idx = PHASES.index(lobby["phase"])
+                idx = PHASES.index(lobby["phase"]) if lobby["phase"] in PHASES else 0
                 if idx < len(PHASES) - 1:
                     lobby["phase"] = PHASES[idx + 1]
             self._persist(lobby)
@@ -242,14 +330,57 @@ class SchaduwstadStore:
             public_result = dict(result)
             if team != "mafia":
                 public_result["mafiaDebrief"] = ""
+                public_result["mafiaPersonal"] = []
                 if lobby["phase"] != "eval":
                     public_result["mafiaAction"] = None
             if team != "detective":
                 public_result["detectiveDebrief"] = ""
+                public_result["detectivePersonal"] = []
+                public_result["clues"] = {}
                 if lobby["phase"] != "eval":
                     public_result["detectiveAction"] = None
+            cues = []
+            for cue in result.get("cinematics") or []:
+                owner = cue.get("team")
+                if owner and owner != team:
+                    continue
+                cues.append(cue)
+            public_result["cinematics"] = cues
+            if team != "detective":
+                public_result["clues"] = {}
         mafia_n = sum(1 for p in lobby["players"] if p["team"] == "mafia")
         det_n = sum(1 for p in lobby["players"] if p["team"] == "detective")
+        tally: dict[str, int] = {}
+        if started and team and lobby["phase"] in ("action", "result", "eval"):
+            for p in lobby["players"]:
+                if p["team"] != team:
+                    continue
+                vote = lobby.get("votes", {}).get(p["id"])
+                if vote:
+                    tally[vote] = tally.get(vote, 0) + 1
+        vote_tally = [
+            {
+                "id": item["id"],
+                "label": item["label"],
+                "votes": tally.get(item["id"], 0),
+            }
+            for item in actions_for(team)
+        ]
+        clues = []
+        if team == "detective":
+            known = lobby.get("clues") or {}
+            clues = list(known.values())
+        ops = None
+        if team == "mafia" and started:
+            ops = ops_dossier(lobby.get("heat") or 0, lobby.get("evidenceScore") or 0, result if reveal else None)
+            if not reveal:
+                ops = {
+                    "heat": 0,
+                    "evidenceThreat": 0,
+                    "protected": ["Nog niets veiliggesteld"],
+                    "threats": ["Recherche beweegt in het donker"],
+                    "risks": ["Houd de kade stil"],
+                }
         return {
             "lobbyCode": lobby["code"],
             "status": lobby["status"],
@@ -262,6 +393,9 @@ class SchaduwstadStore:
                 "team": team,
                 "ready": you["ready"],
                 "isHost": you["id"] == lobby["hostId"],
+                "ap": lobby.get("ap", {}).get(you["id"], AP_PER_DAY) if started else AP_PER_DAY,
+                "apMax": AP_PER_DAY,
+                "personalActions": list(lobby.get("personal", {}).get(you["id"], [])) if started else [],
             },
             "players": [
                 {
@@ -276,12 +410,20 @@ class SchaduwstadStore:
             ],
             "teamSize": {"mafia": mafia_n, "detective": det_n, "cap": TEAM_CAP},
             "chat": [m for m in lobby["chat"] if team and m["team"] == team],
-            "briefing": briefing_for(team) if started and team and lobby["phase"] in ("briefing", "huddle", "action") else None,
-            "availableActions": list(actions_for(team)) if started and lobby["phase"] == "action" and team else [],
+            "briefing": briefing_for(team)
+            if started and team and lobby["phase"] in ("briefing", "huddle", "personal", "action")
+            else None,
+            "availableActions": list(actions_for(team))
+            if started and lobby["phase"] in ("personal", "action") and team
+            else [],
             "yourVote": lobby["votes"].get(you["id"]),
+            "voteTally": vote_tally if started and team and lobby["phase"] in ("action", "result", "eval") else [],
             "scores": lobby["scores"] if reveal else {"mafia": 0, "detective": 0},
             "heat": lobby["heat"] if reveal else 0,
             "evidence": lobby["evidence"] if reveal else None,
+            "evidenceScore": lobby.get("evidenceScore", 0) if reveal else 0,
+            "clues": clues,
+            "opsDossier": ops,
             "result": public_result,
             "canStart": (
                 you["id"] == lobby["hostId"]

@@ -84,12 +84,16 @@ fun LobbyScreen(
             Spacer(Modifier.height(16.dp))
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 GlassCard(Modifier.weight(1f), PaperRed) {
-                    Text("MAFFIA", color = PaperRed, letterSpacing = 2.sp, fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                    Text("${view?.teamSize?.mafia ?: 0}/$cap", color = Color.White, fontSize = 28.sp, fontFamily = FontFamily.Serif)
+                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Text("MAFFIA", color = PaperRed, letterSpacing = 1.4.sp, fontSize = 11.sp, fontWeight = FontWeight.Bold, maxLines = 1)
+                        Text("${view?.teamSize?.mafia ?: 0} / $cap", color = Color.White, fontSize = 26.sp, fontFamily = FontFamily.Serif, maxLines = 1)
+                    }
                 }
                 GlassCard(Modifier.weight(1f), Ice) {
-                    Text("DETECTIVES", color = Ice, letterSpacing = 2.sp, fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                    Text("${view?.teamSize?.detective ?: 0}/$cap", color = Color.White, fontSize = 28.sp, fontFamily = FontFamily.Serif)
+                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Text("DETECTIVES", color = Ice, letterSpacing = 1.0.sp, fontSize = 11.sp, fontWeight = FontWeight.Bold, maxLines = 1)
+                        Text("${view?.teamSize?.detective ?: 0} / $cap", color = Color.White, fontSize = 26.sp, fontFamily = FontFamily.Serif, maxLines = 1)
+                    }
                 }
             }
             Spacer(Modifier.height(12.dp))

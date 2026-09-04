@@ -32,5 +32,8 @@ local.properties
 *.iml
 .idea/
 
+# duplicate encode output (canonical Android copies live in res/raw)
+assets/cinematics-android/
+
 # os
 .DS_Store

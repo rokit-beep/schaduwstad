@@ -3,6 +3,7 @@ package com.nightforge.schaduwstad.viewmodel
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.nightforge.schaduwstad.data.CinematicCue
 import com.nightforge.schaduwstad.data.Session
 import com.nightforge.schaduwstad.data.SessionView
 import com.nightforge.schaduwstad.data.SettingsStore
@@ -37,6 +38,9 @@ data class UiState(
     val session: Session? = null,
     val view: SessionView? = null,
     val busy: Boolean = false,
+    val cinematicQueue: List<CinematicCue> = emptyList(),
+    val dossierOpen: Boolean = false,
+    val replayCue: CinematicCue? = null,
 )
 
 class GameViewModel(app: Application) : AndroidViewModel(app) {
@@ -51,6 +55,7 @@ class GameViewModel(app: Application) : AndroidViewModel(app) {
     val ui: StateFlow<UiState> = _ui
     val socketStatus: StateFlow<SocketStatus> = socket.status
     private var pollJob: Job? = null
+    private var playedResultKey: String? = null
 
     init {
         viewModelScope.launch {
@@ -88,10 +93,19 @@ class GameViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun go(dest: Dest) { _ui.update { it.copy(dest = dest, error = null) } }
-
     fun setJoinCode(value: String) { _ui.update { it.copy(joinCode = value.filter { ch -> ch.isLetterOrDigit() }.take(4).uppercase()) } }
     fun setChatDraft(value: String) { _ui.update { it.copy(chatDraft = value.take(240)) } }
     fun clearError() { _ui.update { it.copy(error = null, notice = null) } }
+    fun toggleDossier() { _ui.update { it.copy(dossierOpen = !it.dossierOpen) } }
+    fun closeDossier() { _ui.update { it.copy(dossierOpen = false) } }
+
+    fun cinematicFinished() {
+        _ui.update { it.copy(cinematicQueue = emptyList(), replayCue = null) }
+    }
+
+    fun replayCinematic(cue: CinematicCue) {
+        _ui.update { it.copy(replayCue = cue, cinematicQueue = emptyList()) }
+    }
 
     fun saveName(name: String) {
         viewModelScope.launch {
@@ -156,6 +170,10 @@ class GameViewModel(app: Application) : AndroidViewModel(app) {
         applyView(api.vote(cfg, requireSession(), action)); null
     }
 
+    fun personal(action: String) = mutate { cfg, _ ->
+        applyView(api.personal(cfg, requireSession(), action)); null
+    }
+
     fun advance() = mutate { cfg, _ ->
         applyView(api.advance(cfg, requireSession())); null
     }
@@ -170,10 +188,16 @@ class GameViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
+    fun shareClue(clueId: String) {
+        val session = _ui.value.session ?: return
+        mutate { cfg, _ -> applyView(api.chat(cfg, session, "", clueId)); null }
+    }
+
     fun leaveToMenu() {
         pollJob?.cancel()
         socket.close()
-        _ui.update { it.copy(dest = Dest.Menu, session = null, view = null, error = null) }
+        playedResultKey = null
+        _ui.update { it.copy(dest = Dest.Menu, session = null, view = null, error = null, cinematicQueue = emptyList(), dossierOpen = false) }
     }
 
     private fun attach(view: SessionView) {
@@ -191,7 +215,14 @@ class GameViewModel(app: Application) : AndroidViewModel(app) {
             view.status == "waiting" && _ui.value.session != null -> Dest.Lobby
             else -> _ui.value.dest
         }
-        _ui.update { it.copy(view = view, dest = dest, error = null) }
+        val key = "${view.day}:${view.phase}:${view.result?.headline}"
+        val queue = if (view.phase == "result" && key != playedResultKey && view.result?.cinematics?.isNotEmpty() == true) {
+            playedResultKey = key
+            view.result.cinematics
+        } else {
+            _ui.value.cinematicQueue
+        }
+        _ui.update { it.copy(view = view, dest = dest, error = null, cinematicQueue = queue) }
     }
 
     private fun startPolling() {
